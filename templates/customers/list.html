@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}客户列表 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>客户列表</h1>
+</section>
+
+<section class="panel customer-create-card">
+    <h2>新增客户</h2>
+    <form class="inline-form customer-form" method="post">
+        <label>客户名称<input name="name" required></label>
+        <label>联系方式<input name="contact"></label>
+        <label>微信<input name="wechat"></label>
+        <label>淘宝昵称<input name="taobao_nick"></label>
+        <label>来源
+            <select name="source">
+                <option value="">未填写</option>
+                {% for source in sources %}
+                    <option value="{{ source }}">{{ source }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="wide">备注<input name="notes"></label>
+        <button class="button primary" type="submit">新增客户</button>
+    </form>
+</section>
+
+<section class="panel desktop-table">
+    <table>
+        <thead>
+            <tr>
+                <th>客户名称</th>
+                <th>联系方式</th>
+                <th>微信</th>
+                <th>淘宝昵称</th>
+                <th>来源</th>
+                <th>订单数</th>
+                <th>累计销售额</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+                <tr>
+                    <td>{{ customer.name }}</td>
+                    <td>{{ customer.contact or "-" }}</td>
+                    <td>{{ customer.wechat or "-" }}</td>
+                    <td>{{ customer.taobao_nick or "-" }}</td>
+                    <td>{{ customer.source or "-" }}</td>
+                    <td>{{ customer.order_count }}</td>
+                    <td class="money-cell">¥{{ customer.sales_total|money }}</td>
+                    <td><a class="button info compact" href="{{ url_for('main.customer_detail', customer_id=customer.id) }}">详情</a></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="8" class="empty">暂无客户。</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="mobile-card-list customer-card-list">
+    {% for customer in customers %}
+        <article class="order-mobile-card">
+            <div class="card-title">
+                <strong>{{ customer.name }}</strong>
+                <span class="tag">{{ customer.source or "未填写" }}</span>
+            </div>
+            <div class="card-row"><span>联系方式</span><strong>{{ customer.contact or "-" }}</strong></div>
+            <div class="card-row"><span>微信</span><strong>{{ customer.wechat or "-" }}</strong></div>
+            <div class="card-row"><span>淘宝昵称</span><strong>{{ customer.taobao_nick or "-" }}</strong></div>
+            <div class="card-row"><span>订单数</span><strong>{{ customer.order_count }}</strong></div>
+            <div class="card-row"><span>累计销售额</span><strong>¥{{ customer.sales_total|money }}</strong></div>
+            <div class="card-actions">
+                <a class="button info" href="{{ url_for('main.customer_detail', customer_id=customer.id) }}">查看详情</a>
+            </div>
+        </article>
+    {% else %}
+        <p class="empty order-mobile-card">暂无客户。</p>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}订单列表 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>订单列表</h1>
+    {% if can_create_order() %}
+        <a class="button primary" href="{{ url_for('main.order_new') }}">新建订单</a>
+    {% endif %}
+</section>
+
+<form class="filters panel" method="get" data-order-filter-form>
+    <label>状态
+        <select name="status" data-filter-status>
+            <option value="">全部状态</option>
+            {% for status in statuses %}
+                <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>来源
+        <select name="source" data-filter-source>
+            <option value="">全部来源</option>
+            {% for source in sources %}
+                <option value="{{ source }}" {% if filters.source == source %}selected{% endif %}>{{ source }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>搜索
+        <input name="keyword" value="{{ filters.keyword }}" placeholder="订单编号、客户、电话、产品、备注" data-filter-keyword>
+    </label>
+    {% if can_view_cost_profit() %}
+        <label>利润预警
+            <select name="profit_alert" data-filter-profit>
+                <option value="">全部利润</option>
+                <option value="alert">低利润订单</option>
+                <option value="low">低利润</option>
+                <option value="danger">危险利润</option>
+                <option value="loss">亏损订单</option>
+            </select>
+        </label>
+    {% endif %}
+    <button class="button secondary" type="button" data-filter-clear>清空</button>
+</form>
+
+<p class="filter-summary" data-filter-summary data-total="{{ orders|length }}">共 {{ orders|length }} 条，当前显示 {{ orders|length }} 条</p>
+<p class="empty filter-empty" data-filter-empty hidden>没有找到符合条件的订单</p>
+
+<section class="panel desktop-table">
+    <table>
+        <thead>
+            <tr>
+                <th>订单编号</th>
+                <th>来源</th>
+                <th>客户</th>
+                <th>产品</th>
+                <th>规格</th>
+                <th>厚度</th>
+                <th>状态</th>
+                {% if can_view_quote() %}<th>销售金额</th>{% endif %}
+                {% if can_view_cost_profit() %}<th>利润</th>{% endif %}
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+                {% set profit_alert = order_profit_alert(order) %}
+                <tr
+                    data-order-item
+                    data-status="{{ order.status }}"
+                    data-source="{{ order.source }}"
+                    data-order-no="{{ order.order_no }}"
+                    data-customer="{{ order.customer_name }}"
+                    data-phone="{{ order.customer_contact or '' }}"
+                    data-product="{{ order.product_name }}"
+                    data-remark="{{ order.notes or '' }}"
+                    {% if can_view_cost_profit() %}data-profit-alert="{{ profit_alert.code }}"{% endif %}
+                >
+                    <td><a href="{{ url_for('main.order_detail', order_id=order.id) }}">{{ order.order_no }}</a></td>
+                    <td>{{ order.source }}</td>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.product_name }}</td>
+                    <td>{{ order.specification }}</td>
+                    <td>{{ order.thickness }}</td>
+                    <td><span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span></td>
+                    {% if can_view_quote() %}<td class="money-cell">¥{{ order.final_quote|money }}</td>{% endif %}
+                    {% if can_view_cost_profit() %}
+                        <td class="money-cell {% if order.profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">
+                            ¥{{ order.profit|money }}
+                            {% if profit_alert.code != "normal" %}
+                                <span class="tag profit-alert-badge" data-alert="{{ profit_alert.code }}">{{ profit_alert.label }}</span>
+                            {% endif %}
+                        </td>
+                    {% endif %}
+                    <td class="actions">
+                        {% set next_status = next_order_status(order.status) %}
+                        {% if next_status and can_advance_status(order.status, next_status) %}
+                            <form method="post" action="{{ url_for('main.order_next_status', order_id=order.id) }}">
+                                <input type="hidden" name="return_to" value="list">
+                                <input type="hidden" name="current_status" value="{{ order.status }}">
+                                <button class="button secondary compact" type="submit">下一步：{{ next_status }}</button>
+                            </form>
+                        {% endif %}
+                        {% if can_cancel_order() and order.status != "已取消" %}
+                            <form method="post" action="{{ url_for('main.order_cancel', order_id=order.id) }}" onsubmit="return confirm('确定要取消这个订单吗？');">
+                                <input type="hidden" name="return_to" value="list">
+                                <input type="hidden" name="current_status" value="{{ order.status }}">
+                                <button class="button danger compact" type="submit">取消订单</button>
+                            </form>
+                        {% endif %}
+                        <a class="button info compact" href="{{ url_for('main.order_detail', order_id=order.id) }}">详情</a>
+                        {% if can_edit_order() %}
+                            <a class="button secondary compact" href="{{ url_for('main.order_edit', order_id=order.id) }}">编辑</a>
+                        {% endif %}
+                        {% if can_edit_cost() %}
+                            <a class="button secondary compact" href="{{ url_for('main.order_cost_edit', order_id=order.id) }}">编辑成本</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="10" class="empty">没有找到订单。</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="mobile-card-list" aria-label="手机订单卡片列表">
+    {% for order in orders %}
+        {% set profit_alert = order_profit_alert(order) %}
+        <article
+            class="order-mobile-card"
+            data-order-item
+            data-status="{{ order.status }}"
+            data-source="{{ order.source }}"
+            data-order-no="{{ order.order_no }}"
+            data-customer="{{ order.customer_name }}"
+            data-phone="{{ order.customer_contact or '' }}"
+            data-product="{{ order.product_name }}"
+            data-remark="{{ order.notes or '' }}"
+            {% if can_view_cost_profit() %}data-profit-alert="{{ profit_alert.code }}"{% endif %}
+        >
+            <div class="card-title">
+                <strong>{{ order.order_no }}</strong>
+                <span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span>
+            </div>
+            <div class="card-row"><span>客户名称</span><strong>{{ order.customer_name }}</strong></div>
+            <div class="card-row"><span>产品名称</span><strong>{{ order.product_name }}</strong></div>
+            {% if can_view_quote() %}
+                <div class="card-row"><span>最终报价</span><strong>¥{{ order.final_quote|money }}</strong></div>
+            {% endif %}
+            {% if can_view_cost_profit() and profit_alert.code != "normal" %}
+                <div class="card-row"><span>利润预警</span><strong><span class="tag profit-alert-badge" data-alert="{{ profit_alert.code }}">{{ profit_alert.label }}</span></strong></div>
+            {% endif %}
+            <div class="card-row"><span>交期</span><strong>{{ order.delivery_date or "-" }}</strong></div>
+            <div class="card-actions">
+                {% set next_status = next_order_status(order.status) %}
+                {% if next_status and can_advance_status(order.status, next_status) %}
+                    <form method="post" action="{{ url_for('main.order_next_status', order_id=order.id) }}">
+                        <input type="hidden" name="return_to" value="list">
+                        <input type="hidden" name="current_status" value="{{ order.status }}">
+                        <button class="button primary" type="submit">下一步：{{ next_status }}</button>
+                    </form>
+                {% endif %}
+                <a class="button" href="{{ url_for('main.order_detail', order_id=order.id) }}">查看详情</a>
+                {% if can_cancel_order() and order.status != "已取消" %}
+                    <form method="post" action="{{ url_for('main.order_cancel', order_id=order.id) }}" onsubmit="return confirm('确定要取消这个订单吗？');">
+                        <input type="hidden" name="return_to" value="list">
+                        <input type="hidden" name="current_status" value="{{ order.status }}">
+                        <button class="button danger" type="submit">取消订单</button>
+                    </form>
+                {% endif %}
+            </div>
+        </article>
+    {% else %}
+        <p class="empty order-mobile-card">没有找到订单。</p>
+    {% endfor %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/order_filter.js') }}?v=realtime-filter-20260514"></script>
+{% endblock %}

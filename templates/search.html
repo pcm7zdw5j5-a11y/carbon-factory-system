@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}搜索结果 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>搜索结果</h1>
+        <p class="muted">关键词：{{ keyword or "未输入" }}</p>
+    </div>
+</section>
+
+<form class="panel global-search-page-form" method="get" action="{{ url_for('main.global_search') }}">
+    <label>全局搜索
+        <input name="q" value="{{ keyword }}" placeholder="订单编号、客户、手机号、产品、图纸、快递、备注">
+    </label>
+    <button class="button primary" type="submit">搜索</button>
+</form>
+
+{% if not keyword %}
+    <section class="panel">
+        <p class="empty">请输入关键词后搜索。</p>
+    </section>
+{% else %}
+    <section class="search-result-grid">
+        <div class="panel search-result-section">
+            <div class="section-title">
+                <h2>订单</h2>
+                <span class="tag">{{ order_results|length }}</span>
+            </div>
+            <div class="search-result-list">
+                {% for order in order_results %}
+                    <a class="search-result-item" href="{{ url_for('main.order_detail', order_id=order.id) }}">
+                        <strong>{{ order.order_no }}</strong>
+                        <span>{{ order.customer_name }} · {{ order.product_name }}</span>
+                        <small>{{ order.customer_contact or "-" }} · {{ order.tracking_number or "无快递单号" }} · {{ order.notes or "无备注" }}</small>
+                    </a>
+                {% else %}
+                    <p class="empty">没有匹配订单。</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel search-result-section">
+            <div class="section-title">
+                <h2>客户</h2>
+                <span class="tag">{{ customer_results|length }}</span>
+            </div>
+            <div class="search-result-list">
+                {% for customer in customer_results %}
+                    <a class="search-result-item" href="{{ url_for('main.customer_detail', customer_id=customer.id) }}">
+                        <strong>{{ customer.name }}</strong>
+                        <span>{{ customer.contact or "-" }} · {{ customer.source or "未填写来源" }}</span>
+                        <small>{{ customer.wechat or "无微信" }} · {{ customer.taobao_nick or "无淘宝昵称" }}</small>
+                    </a>
+                {% else %}
+                    <p class="empty">没有匹配客户。</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel search-result-section">
+            <div class="section-title">
+                <h2>文件</h2>
+                <span class="tag">{{ file_results|length }}</span>
+            </div>
+            <div class="search-result-list">
+                {% for order in file_results %}
+                    <a class="search-result-item" href="{{ url_for('main.order_detail', order_id=order.id) }}">
+                        <strong>{{ order.drawing_original_name or order.drawing_filename }}</strong>
+                        <span>{{ order.order_no }} · {{ order.customer_name }}</span>
+                        <small>{{ order.product_name }} · 点击进入订单详情查看/下载图纸</small>
+                    </a>
+                {% else %}
+                    <p class="empty">没有匹配文件。</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+{% endif %}
+{% endblock %}

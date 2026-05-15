@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}淘宝订单导入 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>淘宝订单 Excel 导入</h1>
+        <p>上传淘宝导出的 Excel/CSV 文件，系统会自动创建订单，重复订单编号会自动跳过。</p>
+    </div>
+    <a class="button secondary" href="{{ url_for('main.orders') }}">返回订单列表</a>
+</section>
+
+<section class="panel">
+    <h2>上传文件</h2>
+    <form class="form-grid" method="post" enctype="multipart/form-data">
+        <label class="wide">淘宝订单文件
+            <input type="file" name="taobao_file" accept=".xlsx,.csv,.tsv,.txt" required>
+        </label>
+        <p class="hint wide">支持字段：订单编号、客户/买家昵称/收货人、手机号、商品标题、数量、实付金额、备注。重复订单不会再次导入。</p>
+        <div class="button-row wide">
+            <button class="button primary" type="submit">开始导入</button>
+        </div>
+    </form>
+</section>
+
+{% if result %}
+<section class="panel">
+    <h2>导入结果</h2>
+    <div class="summary-mobile-grid import-summary-grid">
+        <article class="summary-mobile-card"><span>读取行数</span><strong>{{ result.total }}</strong></article>
+        <article class="summary-mobile-card"><span>新增订单</span><strong>{{ result.imported|length }}</strong></article>
+        <article class="summary-mobile-card"><span>跳过重复</span><strong>{{ result.skipped|length }}</strong></article>
+        <article class="summary-mobile-card"><span>错误行</span><strong>{{ result.errors|length }}</strong></article>
+    </div>
+
+    {% if result.imported %}
+        <h3>新增订单</h3>
+        <div class="mobile-card-list">
+            {% for item in result.imported %}
+                <article class="mini-card">
+                    <strong>{{ item.order_no }}</strong>
+                    <a class="button secondary compact" href="{{ url_for('main.order_detail', order_id=item.id) }}">查看</a>
+                </article>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% if result.skipped %}
+        <h3>已跳过重复订单</h3>
+        <p class="hint">{{ result.skipped|join("，") }}</p>
+    {% endif %}
+    {% if result.errors %}
+        <h3>错误</h3>
+        <ul>
+            {% for error in result.errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>
+{% endif %}
+{% endblock %}

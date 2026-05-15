@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>{{ title }}</h1>
+    <a class="button secondary" href="{{ url_for('main.orders') }}">返回列表</a>
+</section>
+
+<form class="order-form" method="post" enctype="multipart/form-data" data-pricing-form>
+    <section class="panel form-section-basic">
+        <h2>基础信息</h2>
+        <div class="form-grid">
+            <label>订单编号<input name="order_no" value="{{ order.get('order_no', '') }}" placeholder="留空自动生成"></label>
+            <label>订单来源
+                <select name="source">
+                    {% for source in sources %}
+                        <option value="{{ source }}" {% if order.get('source', '淘宝') == source %}selected{% endif %}>{{ source }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>选择已有客户
+                <select name="customer_id" data-customer-select>
+                    <option value="">不关联，填写新客户</option>
+                    {% for customer in customers or [] %}
+                        <option
+                            value="{{ customer.id }}"
+                            data-name="{{ customer.name }}"
+                            data-contact="{{ customer.contact or '' }}"
+                            data-source="{{ customer.source or '' }}"
+                            {% if order.get('customer_id') == customer.id %}selected{% endif %}
+                        >{{ customer.name }}{% if customer.contact %} / {{ customer.contact }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>客户名称<input name="customer_name" required value="{{ order.get('customer_name', '') }}"></label>
+            <label>联系方式<input name="customer_contact" value="{{ order.get('customer_contact', '') }}"></label>
+            <label>产品名称<input name="product_name" required value="{{ order.get('product_name', '') }}"></label>
+            <label>材料类型<input name="material_type" value="{{ order.get('material_type', '碳纤维板') }}"></label>
+            <label>板材规格<input name="specification" data-field="specification" value="{{ order.get('specification', '400×500') }}"></label>
+            <label>厚度<input name="thickness" data-field="thickness" value="{{ order.get('thickness', '3mm') }}"></label>
+            <label>客户要求件数<input type="number" name="quantity" min="1" value="{{ order.get('quantity', 1) }}"></label>
+            <label>预计使用板数<input type="number" step="0.01" name="board_count" data-field="board_count" value="{{ order.get('board_count', 1) }}"></label>
+            <label>交期<input type="date" name="delivery_date" value="{{ order.get('delivery_date', '') }}"></label>
+            <label>订单状态
+                <select name="status">
+                    {% for status in statuses %}
+                        <option value="{{ status }}" {% if order.get('status', '待审核') == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+        {% if duplicate_customers %}
+            <div class="message error customer-match-box">
+                <strong>发现已有客户，请选择已有客户关联。</strong>
+                <ul>
+                    {% for customer in duplicate_customers %}
+                        <li>
+                            {{ customer.name }}{% if customer.contact %} / {{ customer.contact }}{% endif %}
+                            <a href="{{ url_for('main.customer_detail', customer_id=customer.id) }}" target="_blank" rel="noopener">查看客户</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+                <label class="inline-check">
+                    <input type="checkbox" name="confirm_new_customer" value="1">
+                    我确认这是新客户，本次不关联已有客户
+                </label>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="panel customer-history-panel" data-customer-history hidden>
+        <div class="section-title">
+            <div>
+                <h2>老客户历史价格提醒</h2>
+                <p class="hint">选择客户后显示最近 5 个订单；规格和厚度一致时会突出显示历史成交价。</p>
+            </div>
+        </div>
+        <div class="history-price-match" data-history-match></div>
+        <div class="customer-history-list" data-history-list></div>
+    </section>
+
+    <section class="panel form-section-upload">
+        <h2>图纸上传</h2>
+        <div class="form-grid">
+            <label class="wide">{% if order.get('id') %}重新上传图纸{% else %}图纸文件{% endif %}
+                <input type="file" name="drawing_file" accept=".pdf,.dxf,.dwg,.jpg,.jpeg,.png,.zip,image/*" capture="environment">
+            </label>
+        </div>
+        <p class="hint">手机端可从文件、相册或拍照上传，支持 PDF、DXF、DWG、JPG、PNG、ZIP。</p>
+        {% if order.get('id') %}
+            {% if drawing_file.status == "exists" %}
+                <p class="hint">当前图纸：{{ drawing_file.original_name }}。不重新上传则保留原文件。</p>
+            {% elif drawing_file.status == "missing" %}
+                <p class="message error">当前图纸文件丢失，请重新上传图纸。</p>
+            {% else %}
+                <p class="hint">当前订单暂未上传图纸，可以在这里上传。</p>
+            {% endif %}
+        {% endif %}
+    </section>
+
+    <section class="panel form-section-production">
+        <h2>生产信息</h2>
+        <div class="form-grid">
+            <label class="wide">加工要求<textarea name="processing_requirements">{{ order.get('processing_requirements', '') }}</textarea></label>
+            <label class="wide">备注<textarea name="notes">{{ order.get('notes', '') }}</textarea></label>
+        </div>
+    </section>
+
+    <section class="panel form-section-board-calculator" data-board-calculator>
+        <div class="section-title">
+            <div>
+                <h2>标准矩形件用板计算</h2>
+                <p class="hint">计算结果可以写入订单的预计使用板数。</p>
+            </div>
+            <a class="button secondary compact" href="{{ url_for('main.board_calculator') }}" target="_blank" rel="noopener">打开独立计算页</a>
+        </div>
+        <div class="form-grid">
+            <label>板材宽度 mm<input type="number" step="0.01" data-board-input="board_width" value="400"></label>
+            <label>板材高度 mm<input type="number" step="0.01" data-board-input="board_height" value="500"></label>
+            <label>零件宽度 mm<input type="number" step="0.01" data-board-input="part_width"></label>
+            <label>零件高度 mm<input type="number" step="0.01" data-board-input="part_height"></label>
+            <label>数量<input type="number" min="1" data-board-input="quantity" value="{{ order.get('quantity', 1) }}"></label>
+            <label>边距 mm<input type="number" step="0.01" data-board-input="margin" value="0"></label>
+            <label>间距 mm<input type="number" step="0.01" data-board-input="spacing" value="0"></label>
+        </div>
+        <div class="board-calc-result" data-board-result></div>
+        <div class="button-row">
+            <button class="button primary" type="button" data-write-board-count>写入预计使用板数</button>
+        </div>
+    </section>
+
+    <section class="two-columns">
+        <div class="panel form-section-quote">
+            <h2>报价计算</h2>
+            <div class="form-grid narrow">
+                <label>单张销售价<input name="sale_unit_price" data-field="sale_unit_price" value="{{ order.get('sale_unit_price', '') }}" readonly></label>
+                <label>切割长度/米<input type="number" step="0.01" name="cutting_length" data-field="cutting_length" value="{{ order.get('cutting_length', 0) }}"></label>
+                <label>切割单价<input type="number" step="0.01" name="cutting_unit_price" data-field="cutting_unit_price" value="{{ order.get('cutting_unit_price', 12) }}"></label>
+                <label>孔数<input type="number" name="hole_count" data-field="hole_count" value="{{ order.get('hole_count', 0) }}"></label>
+                <label>单孔价格<input type="number" step="0.01" name="hole_unit_price" data-field="hole_unit_price" value="{{ order.get('hole_unit_price', 2) }}"></label>
+                <label>倒角数量<input type="number" name="chamfer_count" data-field="chamfer_count" value="{{ order.get('chamfer_count', 0) }}"></label>
+                <label>倒角单价<input type="number" step="0.01" name="chamfer_unit_price" data-field="chamfer_unit_price" value="{{ order.get('chamfer_unit_price', 3) }}"></label>
+                <label>抛光费<input type="number" step="0.01" name="polishing_fee" data-field="polishing_fee" value="{{ order.get('polishing_fee', 0) }}"></label>
+                <label>包装费<input type="number" step="0.01" name="packaging_fee" data-field="packaging_fee" value="{{ order.get('packaging_fee', 50) }}"></label>
+                <label>快递费<input type="number" step="0.01" name="shipping_fee" data-field="shipping_fee" value="{{ order.get('shipping_fee', 0) }}"></label>
+                <label>其他费用<input type="number" step="0.01" name="other_fee" data-field="other_fee" value="{{ order.get('other_fee', 0) }}"></label>
+                <label>是否加急
+                    <select name="is_urgent" data-field="is_urgent">
+                        <option value="0" {% if not order.get('is_urgent') %}selected{% endif %}>否</option>
+                        <option value="1" {% if order.get('is_urgent') %}selected{% endif %}>是</option>
+                    </select>
+                </label>
+                <label>加急比例<input type="number" step="0.01" name="urgent_rate" data-field="urgent_rate" value="{{ order.get('urgent_rate', 0.2) }}"></label>
+                <label>是否含税
+                    <select name="include_tax" data-field="include_tax">
+                        <option value="0" {% if not order.get('include_tax') %}selected{% endif %}>否</option>
+                        <option value="1" {% if order.get('include_tax') %}selected{% endif %}>是</option>
+                    </select>
+                </label>
+                <label>税率<input type="number" step="0.01" name="tax_rate" data-field="tax_rate" value="{{ order.get('tax_rate', 0.13) }}"></label>
+                <label>最终报价<input type="number" step="0.01" name="final_quote" data-field="final_quote" value="{{ order.get('final_quote', '') }}"></label>
+            </div>
+            <div class="calc-preview" data-quote-preview></div>
+        </div>
+
+        {% if can_view_cost_profit() or can_edit_cost() %}
+            <div class="panel form-section-cost">
+                <h2>成本利润核算</h2>
+                <div class="form-grid narrow">
+                    <label>单张成本价<input name="cost_unit_price" data-field="cost_unit_price" value="{{ order.get('cost_unit_price', '') }}" readonly></label>
+                    <label>人工成本<input type="number" step="0.01" name="labor_cost" data-field="labor_cost" value="{{ order.get('labor_cost', 0) }}"></label>
+                    <label>机器成本<input type="number" step="0.01" name="machine_cost" data-field="machine_cost" value="{{ order.get('machine_cost', 0) }}"></label>
+                    <label>包装成本<input type="number" step="0.01" name="packaging_cost" data-field="packaging_cost" value="{{ order.get('packaging_cost', 0) }}"></label>
+                    <label>快递成本<input type="number" step="0.01" name="shipping_cost" data-field="shipping_cost" value="{{ order.get('shipping_cost', 0) }}"></label>
+                    <label>平台手续费<input type="number" step="0.01" name="platform_fee" data-field="platform_fee" value="{{ order.get('platform_fee', 0) }}"></label>
+                    <label>其他成本<input type="number" step="0.01" name="other_cost" data-field="other_cost" value="{{ order.get('other_cost', 0) }}"></label>
+                </div>
+                <div class="calc-preview" data-cost-preview></div>
+            </div>
+        {% endif %}
+    </section>
+
+    <div class="sticky-actions">
+        <button class="button primary" type="submit">保存订单</button>
+        <a class="button secondary" href="{{ url_for('main.orders') }}">取消</a>
+    </div>
+</form>
+
+<script id="price-data" type="application/json">{{ prices_json|safe }}</script>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/board_calculator.js') }}"></script>
+<script src="{{ url_for('static', filename='js/order_form.js') }}"></script>
+{% endblock %}

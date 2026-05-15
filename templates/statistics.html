@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}月度统计 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head no-print">
+    <h1>月度统计</h1>
+</section>
+
+<form class="filters panel statistics-toolbar no-print" method="get">
+    <label>年份<input type="number" name="year" value="{{ year }}"></label>
+    <label>月份<input type="number" min="1" max="12" name="month" value="{{ month }}"></label>
+    <div class="button-row statistics-actions">
+        <button class="button primary" type="submit">查看统计</button>
+        <button class="button" type="button" onclick="window.print()">打印本月报表</button>
+        <button class="button secondary" type="button" onclick="window.print()">导出为 PDF</button>
+    </div>
+</form>
+
+<div class="print-area monthly-report">
+    <section class="report-header">
+        <h1>碳纤维工厂月度经营统计报表</h1>
+        <p>报表月份：{{ year }}年{{ month }}月</p>
+        <p>打印时间：{{ print_time }}</p>
+    </section>
+
+    <section class="metric-grid report-metrics">
+        <div class="metric"><span>订单总数</span><strong>{{ summary.total_orders }}</strong></div>
+        <div class="metric"><span>已完成订单数</span><strong>{{ summary.completed_orders }}</strong></div>
+        <div class="metric"><span>销售总额</span><strong>¥{{ summary.sales_total|money }}</strong></div>
+        <div class="metric"><span>总成本</span><strong>¥{{ summary.cost_total|money }}</strong></div>
+        <div class="metric"><span>总利润</span><strong>¥{{ summary.profit_total|money }}</strong></div>
+        <div class="metric"><span>平均毛利率</span><strong>{{ summary.avg_margin_rate|percent }}</strong></div>
+        <div class="metric"><span>异常订单数量</span><strong>{{ summary.exception_order_count }}</strong></div>
+        <div class="metric"><span>返工数量</span><strong>{{ summary.rework_count }}</strong></div>
+    </section>
+
+    <section class="panel report-section">
+        <h2>汇总数据</h2>
+        <div class="report-table-wrap summary-table">
+            <table class="report-table">
+                <tbody>
+                    <tr><th>订单总数</th><td>{{ summary.total_orders }}</td><th>已完成订单数</th><td>{{ summary.completed_orders }}</td></tr>
+                    <tr><th>销售总额</th><td>¥{{ summary.sales_total|money }}</td><th>板材总成本</th><td>¥{{ summary.material_cost_total|money }}</td></tr>
+                    <tr><th>人工成本总额</th><td>¥{{ summary.labor_cost_total|money }}</td><th>机器成本总额</th><td>¥{{ summary.machine_cost_total|money }}</td></tr>
+                    <tr><th>包装成本总额</th><td>¥{{ summary.packaging_cost_total|money }}</td><th>快递成本总额</th><td>¥{{ summary.shipping_cost_total|money }}</td></tr>
+                    <tr><th>快递费总额</th><td>¥{{ summary.shipping_freight_total|money }}</td><th>平台手续费总额</th><td>¥{{ summary.platform_fee_total|money }}</td></tr>
+                    <tr><th>其他成本总额</th><td>¥{{ summary.other_cost_total|money }}</td><th>总成本</th><td>¥{{ summary.cost_total|money }}</td></tr>
+                    <tr><th>总利润</th><td>¥{{ summary.profit_total|money }}</td><th>平均毛利率</th><td>{{ summary.avg_margin_rate|percent }}</td></tr>
+                    <tr><th>异常订单数量</th><td>{{ summary.exception_order_count }}</td><th>返工数量</th><td>{{ summary.rework_count }}</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="summary-mobile-grid">
+            <article class="summary-mobile-card"><span>订单总数</span><strong class="value">{{ summary.total_orders }}</strong></article>
+            <article class="summary-mobile-card"><span>已完成订单数</span><strong class="value">{{ summary.completed_orders }}</strong></article>
+            <article class="summary-mobile-card"><span>销售总额</span><strong class="value">¥{{ summary.sales_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>板材总成本</span><strong class="value">¥{{ summary.material_cost_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>人工成本总额</span><strong class="value">¥{{ summary.labor_cost_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>机器成本总额</span><strong class="value">¥{{ summary.machine_cost_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>包装成本总额</span><strong class="value">¥{{ summary.packaging_cost_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>快递成本总额</span><strong class="value">¥{{ summary.shipping_cost_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>快递费总额</span><strong class="value">¥{{ summary.shipping_freight_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>平台手续费总额</span><strong class="value">¥{{ summary.platform_fee_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>其他成本总额</span><strong class="value">¥{{ summary.other_cost_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>总成本</span><strong class="value">¥{{ summary.cost_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>总利润</span><strong class="value {% if summary.profit_total >= 0 %}profit-positive{% else %}profit-negative{% endif %}">¥{{ summary.profit_total|money }}</strong></article>
+            <article class="summary-mobile-card"><span>平均毛利率</span><strong class="value">{{ summary.avg_margin_rate|percent }}</strong></article>
+            <article class="summary-mobile-card"><span>异常订单数量</span><strong class="value">{{ summary.exception_order_count }}</strong></article>
+            <article class="summary-mobile-card"><span>返工数量</span><strong class="value">{{ summary.rework_count }}</strong></article>
+        </div>
+    </section>
+
+    <section class="two-columns report-columns">
+        <div class="panel report-section">
+            <h2>订单来源统计</h2>
+            <div class="desktop-table">
+                <table class="report-table">
+                    <thead><tr><th>来源</th><th>销售额</th></tr></thead>
+                    <tbody>
+                        {% for row in source_sales %}
+                            <tr><td>{{ row.source }}销售额</td><td>¥{{ row.total|money }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mobile-card-list stat-list">
+                {% for row in source_sales %}
+                    <article class="mini-card">
+                        <span>{{ row.source }}销售额</span>
+                        <strong>¥{{ row.total|money }}</strong>
+                    </article>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="panel report-section">
+            <h2>订单状态统计</h2>
+            <div class="desktop-table">
+                <table class="report-table">
+                    <thead><tr><th>状态</th><th>数量</th></tr></thead>
+                    <tbody>
+                        {% for row in status_counts %}
+                            <tr><td>{{ row.status }}</td><td>{{ row.total }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="mobile-card-list stat-list">
+                {% for row in status_counts %}
+                    <article class="mini-card">
+                        <span>{{ row.status }}</span>
+                        <strong>{{ row.total }}</strong>
+                    </article>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="panel report-section">
+        <h2>明细订单表</h2>
+        <div class="desktop-table report-table-wrap">
+            <table class="report-table report-detail-table">
+                <thead>
+                    <tr>
+                        <th>订单编号</th>
+                        <th>日期</th>
+                        <th>来源</th>
+                        <th>客户</th>
+                        <th>产品</th>
+                        <th>规格</th>
+                        <th>厚度</th>
+                        <th>状态</th>
+                        <th>销售金额</th>
+                        <th>总成本</th>
+                        <th>利润</th>
+                        <th>毛利率</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in detail_orders %}
+                        <tr>
+                            <td>{{ order.order_no }}</td>
+                            <td>{{ order.created_at[:10] if order.created_at else "-" }}</td>
+                            <td>{{ order.source }}</td>
+                            <td>{{ order.customer_name }}</td>
+                            <td>{{ order.product_name }}</td>
+                            <td>{{ order.specification }}</td>
+                            <td>{{ order.thickness }}</td>
+                            <td>{{ order.status }}</td>
+                            <td>¥{{ order.final_quote|money }}</td>
+                            <td>¥{{ order.total_cost|money }}</td>
+                            <td>¥{{ order.profit|money }}</td>
+                            <td>{{ order.margin_rate|percent }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="12" class="empty">本月暂无订单明细。</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="mobile-card-list report-detail-cards">
+            {% for order in detail_orders %}
+                <article class="mini-card">
+                    <span>{{ order.order_no }} · {{ order.status }}</span>
+                    <strong>{{ order.customer_name }} / {{ order.product_name }}</strong>
+                    <p>日期：{{ order.created_at[:10] if order.created_at else "-" }}</p>
+                    <p>来源：{{ order.source }}　规格：{{ order.specification }}　厚度：{{ order.thickness }}</p>
+                    <p>销售金额：¥{{ order.final_quote|money }}</p>
+                    <p>总成本：¥{{ order.total_cost|money }}　利润：¥{{ order.profit|money }}　毛利率：{{ order.margin_rate|percent }}</p>
+                </article>
+            {% else %}
+                <p class="empty">本月暂无订单明细。</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}标准矩形件用板计算 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>标准矩形件用板计算</h1>
+        <p class="muted">输入板材、零件、数量、边距和间距，快速计算每张板排多少件、需要多少张板和材料利用率。</p>
+    </div>
+</section>
+
+<section class="panel board-calculator-panel" data-board-calculator>
+    <form class="form-grid" method="post">
+        <label>板材宽度 mm<input type="number" step="0.01" name="board_width" data-board-input="board_width" value="{{ form_data.board_width }}"></label>
+        <label>板材高度 mm<input type="number" step="0.01" name="board_height" data-board-input="board_height" value="{{ form_data.board_height }}"></label>
+        <label>零件宽度 mm<input type="number" step="0.01" name="part_width" data-board-input="part_width" value="{{ form_data.part_width }}"></label>
+        <label>零件高度 mm<input type="number" step="0.01" name="part_height" data-board-input="part_height" value="{{ form_data.part_height }}"></label>
+        <label>数量<input type="number" min="1" name="quantity" data-board-input="quantity" value="{{ form_data.quantity }}"></label>
+        <label>边距 mm<input type="number" step="0.01" name="margin" data-board-input="margin" value="{{ form_data.margin }}"></label>
+        <label>间距 mm<input type="number" step="0.01" name="spacing" data-board-input="spacing" value="{{ form_data.spacing }}"></label>
+        <div class="button-row wide">
+            <button class="button primary" type="submit">计算</button>
+        </div>
+    </form>
+
+    <div class="board-calc-result" data-board-result>
+        {% if result %}
+            {% if result.error %}
+                <p class="message error">{{ result.error }}</p>
+            {% else %}
+                <div class="metric-grid board-result-grid">
+                    <div class="metric"><span>每行件数</span><strong>{{ result.pieces_per_row }}</strong></div>
+                    <div class="metric"><span>每列件数</span><strong>{{ result.rows_per_board }}</strong></div>
+                    <div class="metric"><span>每张板排多少件</span><strong>{{ result.pieces_per_board }}</strong></div>
+                    <div class="metric"><span>需要板数</span><strong>{{ result.needed_boards }}</strong></div>
+                    <div class="metric"><span>材料利用率</span><strong>{{ result.utilization_rate }}%</strong></div>
+                </div>
+            {% endif %}
+        {% else %}
+            <p class="hint">填写参数后点击计算，也可以在新建/编辑订单页直接把结果写入预计使用板数。</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/board_calculator.js') }}"></script>
+{% endblock %}

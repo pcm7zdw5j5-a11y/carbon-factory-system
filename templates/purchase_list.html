@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}采购清单 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head no-print">
+    <h1>采购清单</h1>
+    <div class="actions">
+        <button class="button primary" type="button" onclick="window.print()">打印采购清单</button>
+        <a class="button secondary" href="{{ url_for('main.dashboard') }}">返回首页</a>
+    </div>
+</section>
+
+<section class="panel print-area purchase-list">
+    <div class="report-header">
+        <h1>碳纤维工厂板材采购清单</h1>
+        <p>生成时间：{{ print_time }}</p>
+    </div>
+
+    <div class="desktop-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>规格</th>
+                    <th>厚度</th>
+                    <th>当前库存</th>
+                    <th>安全库存</th>
+                    <th>建议采购数量</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in reminders %}
+                    <tr>
+                        <td>{{ item.specification }}</td>
+                        <td>{{ item.thickness }}</td>
+                        <td>{{ item.current_stock|money }}</td>
+                        <td>{{ item.safety_stock|money }}</td>
+                        <td><strong>{{ item.suggested_purchase_qty|money }}</strong></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="empty">暂无需要采购的板材。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mobile-card-list purchase-card-list no-print">
+        {% for item in reminders %}
+            <article class="order-mobile-card">
+                <div class="card-title">
+                    <strong>{{ item.specification }}</strong>
+                    <span class="tag">{{ item.thickness }}</span>
+                </div>
+                <div class="card-row"><span>当前库存</span><strong>{{ item.current_stock|money }}</strong></div>
+                <div class="card-row"><span>安全库存</span><strong>{{ item.safety_stock|money }}</strong></div>
+                <div class="card-row"><span>建议采购数量</span><strong>{{ item.suggested_purchase_qty|money }}</strong></div>
+            </article>
+        {% else %}
+            <p class="empty">暂无需要采购的板材。</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

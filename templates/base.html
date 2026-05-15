@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}碳纤维工厂订单管理系统 V1{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=style-20260514">
+</head>
+<body>
+    {% set endpoint = request.endpoint %}
+    {% set current_page_title = {
+        "main.dashboard": "首页仪表盘",
+        "main.orders": "订单列表",
+        "main.order_new": "新建订单",
+        "main.order_detail": "订单详情",
+        "main.order_edit": "编辑订单",
+        "main.order_cost_edit": "编辑成本",
+        "main.customers": "客户列表",
+        "main.customer_detail": "客户详情",
+        "main.production_board": "生产看板",
+        "main.production_sheet": "生产单",
+        "main.board_calculator": "用板计算",
+        "main.prices": "价格表管理",
+        "main.statistics": "月度统计",
+        "main.global_search": "全局搜索",
+        "main.operation_logs": "操作日志",
+        "main.users": "用户管理"
+    }.get(endpoint, "工作台") %}
+
+    {% if current_user %}
+        <header class="topbar mobile-topbar no-print">
+            <div class="brand">
+                <strong class="brand-full">碳纤维工厂订单管理系统 V1</strong>
+                <strong class="brand-short">碳纤维订单 V1</strong>
+            </div>
+            <div class="userbar">
+                <form class="global-search-form mobile-global-search" method="get" action="{{ url_for('main.global_search') }}">
+                    <input name="q" value="{{ request.args.get('q', '') if endpoint == 'main.global_search' else '' }}" placeholder="搜索">
+                    <button type="submit">搜索</button>
+                </form>
+                <span class="desktop-user-label">当前登录：{{ current_user.username }}</span>
+                <span class="mobile-user-label">{{ current_user.username }}</span>
+                <form method="post" action="{{ url_for('main.logout') }}">
+                    <button class="link-button" type="submit">退出</button>
+                </form>
+            </div>
+        </header>
+    {% endif %}
+
+    <div class="app-shell app-layout">
+        {% if current_user %}
+            <aside class="sidebar no-print">
+                <div class="sidebar-brand">
+                    <strong>碳纤维订单 V1</strong>
+                    <span>工厂订单管理后台</span>
+                </div>
+                <nav class="desktop-nav sidebar-nav" aria-label="主导航">
+                    <a class="{% if endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">首页</a>
+                    <a class="{% if endpoint in ['main.orders', 'main.order_detail', 'main.order_edit', 'main.order_cost_edit'] and request.args.get('status') not in ['待下板', '加工中', '待质检'] %}active{% endif %}" href="{{ url_for('main.orders') }}">订单列表</a>
+                    {% if current_user.role in ['admin', 'sales', 'finance'] %}
+                        <a class="{% if endpoint in ['main.customers', 'main.customer_detail'] %}active{% endif %}" href="{{ url_for('main.customers') }}">客户管理</a>
+                    {% endif %}
+                    {% if can_create_order() %}
+                        <a class="{% if endpoint == 'main.order_new' %}active{% endif %}" href="{{ url_for('main.order_new') }}">新建订单</a>
+                        <a class="{% if endpoint == 'main.taobao_import' %}active{% endif %}" href="{{ url_for('main.taobao_import') }}">淘宝导入</a>
+                    {% endif %}
+                    {% if can_view_production_sheet() %}
+                        <a class="{% if endpoint == 'main.production_board' %}active{% endif %}" href="{{ url_for('main.production_board') }}">生产看板</a>
+                    {% endif %}
+                    {% if can_use_board_calculator() %}
+                        <a class="{% if endpoint == 'main.board_calculator' %}active{% endif %}" href="{{ url_for('main.board_calculator') }}">用板计算</a>
+                    {% endif %}
+                    {% if can_manage_prices() %}
+                        <a class="{% if endpoint == 'main.prices' %}active{% endif %}" href="{{ url_for('main.prices') }}">价格表</a>
+                    {% endif %}
+                    {% if can_view_statistics() %}
+                        <a class="{% if endpoint == 'main.statistics' %}active{% endif %}" href="{{ url_for('main.statistics') }}">月度统计</a>
+                    {% endif %}
+                    {% if can_manage_users() %}
+                        <a class="{% if endpoint == 'main.operation_logs' %}active{% endif %}" href="{{ url_for('main.operation_logs') }}">操作日志</a>
+                        <a class="{% if endpoint == 'main.users' %}active{% endif %}" href="{{ url_for('main.users') }}">用户管理</a>
+                    {% endif %}
+                </nav>
+            </aside>
+        {% endif %}
+
+        <main class="app-main main-content">
+            {% if current_user %}
+                <header class="app-topbar no-print">
+                    <div>
+                        <span class="eyebrow">Carbon Factory</span>
+                        <h1>{{ current_page_title }}</h1>
+                    </div>
+                    <form class="global-search-form desktop-global-search" method="get" action="{{ url_for('main.global_search') }}">
+                        <input name="q" value="{{ request.args.get('q', '') if endpoint == 'main.global_search' else '' }}" placeholder="订单编号、客户、手机号、产品、图纸、快递、备注">
+                        <button class="button primary compact" type="submit">搜索</button>
+                    </form>
+                    <div class="userbar desktop-userbar">
+                        <span>当前登录：{{ current_user.username }}</span>
+                        <form method="post" action="{{ url_for('main.logout') }}">
+                            <button class="button secondary" type="submit">退出登录</button>
+                        </form>
+                    </div>
+                </header>
+            {% endif %}
+
+            <section class="page">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div class="messages">
+                            {% for category, message in messages %}
+                                <div class="message {{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </section>
+        </main>
+    </div>
+
+    {% if current_user %}
+        <nav class="mobile-bottom-nav no-print" aria-label="手机底部导航">
+            <a class="{% if endpoint == 'main.dashboard' %}active{% endif %}" href="{{ url_for('main.dashboard') }}">首页</a>
+            <a class="{% if endpoint in ['main.orders', 'main.order_detail', 'main.order_edit', 'main.order_cost_edit'] and request.args.get('status') not in ['待下板', '加工中', '待质检'] %}active{% endif %}" href="{{ url_for('main.orders') }}">订单</a>
+            {% if current_user.role in ['admin', 'sales', 'finance'] %}
+                <a class="{% if endpoint in ['main.customers', 'main.customer_detail'] %}active{% endif %}" href="{{ url_for('main.customers') }}">客户</a>
+            {% endif %}
+            {% if can_create_order() %}
+                <a class="{% if endpoint == 'main.order_new' %}active{% endif %}" href="{{ url_for('main.order_new') }}">新建</a>
+            {% endif %}
+            {% if can_view_statistics() %}
+                <a class="{% if endpoint == 'main.statistics' %}active{% endif %}" href="{{ url_for('main.statistics') }}">统计</a>
+            {% endif %}
+            {% if can_view_production_sheet() %}
+                <a class="{% if endpoint in ['main.production_board', 'main.production_sheet'] or request.args.get('status') in ['待下板', '加工中', '待质检'] %}active{% endif %}" href="{{ url_for('main.production_board') }}">生产</a>
+            {% endif %}
+        </nav>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='app.js') }}?v=style-20260514"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

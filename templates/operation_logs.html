@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}操作日志 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>操作日志</h1>
+        <p class="muted">记录登录、订单、报价、成本、文件、状态和价格表等关键操作。</p>
+    </div>
+</section>
+
+<section class="panel desktop-table">
+    <table>
+        <thead>
+            <tr>
+                <th>操作时间</th>
+                <th>操作用户</th>
+                <th>操作类型</th>
+                <th>关联订单编号</th>
+                <th>操作前内容</th>
+                <th>操作后内容</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+                <tr>
+                    <td>{{ log.created_at }}</td>
+                    <td>{{ log.username }}</td>
+                    <td><span class="tag">{{ log.action_type }}</span></td>
+                    <td>{{ log.order_no or "-" }}</td>
+                    <td><pre class="log-content">{{ log.before_content or "-" }}</pre></td>
+                    <td><pre class="log-content">{{ log.after_content or "-" }}</pre></td>
+                </tr>
+            {% else %}
+                <tr><td colspan="6" class="empty">暂无操作日志。</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="mobile-card-list" aria-label="手机操作日志列表">
+    {% for log in logs %}
+        <article class="order-mobile-card">
+            <div class="card-title">
+                <strong>{{ log.action_type }}</strong>
+                <span class="tag">{{ log.username }}</span>
+            </div>
+            <div class="card-row"><span>时间</span><strong>{{ log.created_at }}</strong></div>
+            <div class="card-row"><span>订单</span><strong>{{ log.order_no or "-" }}</strong></div>
+            <div class="log-mobile-block">
+                <span>操作前</span>
+                <pre class="log-content">{{ log.before_content or "-" }}</pre>
+            </div>
+            <div class="log-mobile-block">
+                <span>操作后</span>
+                <pre class="log-content">{{ log.after_content or "-" }}</pre>
+            </div>
+        </article>
+    {% else %}
+        <p class="empty order-mobile-card">暂无操作日志。</p>
+    {% endfor %}
+</section>
+{% endblock %}

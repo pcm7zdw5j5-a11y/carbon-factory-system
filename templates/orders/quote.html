@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}客户报价单 - {{ order.order_no }}{% endblock %}
+{% block content %}
+<section class="page-head no-print">
+    <div>
+        <h1>客户报价单</h1>
+        <p>{{ order.order_no }} / {{ order.customer_name }}</p>
+    </div>
+    <div class="button-row">
+        <button class="button primary" type="button" onclick="window.print()">导出为 PDF / 打印</button>
+        <a class="button secondary" href="{{ url_for('main.order_detail', order_id=order.id) }}">返回订单详情</a>
+    </div>
+</section>
+
+<section class="panel print-area quote-sheet">
+    <div class="quote-sheet-head">
+        <h1>碳纤维工厂客户报价单</h1>
+        <p>订单编号：{{ order.order_no }}</p>
+        <p>报价时间：{{ order.updated_at|date_text }}</p>
+    </div>
+
+    <div class="quote-info-grid">
+        <div><span>客户名称</span><strong>{{ order.customer_name }}</strong></div>
+        <div><span>联系方式</span><strong>{{ order.customer_contact or "-" }}</strong></div>
+        <div><span>产品名称</span><strong>{{ order.product_name }}</strong></div>
+        <div><span>材料类型</span><strong>{{ order.material_type or "-" }}</strong></div>
+        <div><span>规格厚度</span><strong>{{ order.specification }} / {{ order.thickness }}</strong></div>
+        <div><span>数量</span><strong>{{ order.quantity }}</strong></div>
+        <div><span>交期</span><strong>{{ order.delivery_date or "待确认" }}</strong></div>
+        <div><span>订单状态</span><strong>{{ order.status }}</strong></div>
+    </div>
+
+    <table class="quote-table">
+        <thead>
+            <tr>
+                <th>项目</th>
+                <th>说明</th>
+                <th class="money-cell">金额</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>板材报价</td><td>{{ order.specification }} / {{ order.thickness }}，预计 {{ order.board_count }} 张</td><td class="money-cell">¥{{ order.material_quote|money }}</td></tr>
+            <tr><td>切割费用</td><td>切割长度 {{ order.cutting_length or 0 }} 米</td><td class="money-cell">¥{{ order.cutting_fee|money }}</td></tr>
+            <tr><td>打孔费用</td><td>{{ order.hole_count or 0 }} 个孔</td><td class="money-cell">¥{{ order.hole_fee|money }}</td></tr>
+            <tr><td>倒角费用</td><td>{{ order.chamfer_count or 0 }} 个</td><td class="money-cell">¥{{ order.chamfer_fee|money }}</td></tr>
+            <tr><td>包装快递</td><td>包装、快递及其他费用</td><td class="money-cell">¥{{ (order.packaging_fee + order.shipping_fee + order.other_fee)|money }}</td></tr>
+            {% if order.is_urgent %}<tr><td>加急费用</td><td>加急订单</td><td class="money-cell">¥{{ order.urgent_fee|money }}</td></tr>{% endif %}
+            {% if order.include_tax %}<tr><td>税费</td><td>含税报价</td><td class="money-cell">¥{{ order.tax_fee|money }}</td></tr>{% endif %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <th colspan="2">最终报价</th>
+                <th class="money-cell">¥{{ order.final_quote|money }}</th>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="quote-notes">
+        <h2>备注</h2>
+        <p>{{ order.notes or "本报价单仅供客户确认规格、数量、交期和报价使用。" }}</p>
+    </div>
+</section>
+{% endblock %}

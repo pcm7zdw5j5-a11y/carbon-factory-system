@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}价格表 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>价格表管理</h1>
+</section>
+
+<section class="panel price-create-card">
+    <h2>新增价格</h2>
+    <form class="inline-form" method="post">
+        <label>板材规格<input name="specification" value="400×500"></label>
+        <label>厚度<input name="thickness" placeholder="例如 3mm"></label>
+        <label>单张销售价<input type="number" step="0.01" name="sale_price"></label>
+        <label>单张成本价<input type="number" step="0.01" name="cost_price"></label>
+        <label>当前库存<input type="number" step="0.01" name="current_stock" value="0"></label>
+        <label>安全库存<input type="number" step="0.01" name="safety_stock" value="0"></label>
+        <button class="button primary" type="submit">新增</button>
+    </form>
+</section>
+
+<section class="panel desktop-table">
+    <table>
+        <thead>
+            <tr>
+                <th>规格</th>
+                <th>厚度</th>
+                <th>单张销售价</th>
+                <th>单张成本价</th>
+                <th>当前库存</th>
+                <th>安全库存</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in prices %}
+                <tr>
+                    <form method="post" action="{{ url_for('main.price_edit', item_id=item.id) }}">
+                        <td><input name="specification" value="{{ item.specification }}"></td>
+                        <td><input name="thickness" value="{{ item.thickness }}"></td>
+                        <td><input type="number" step="0.01" name="sale_price" value="{{ item.sale_price }}"></td>
+                        <td><input type="number" step="0.01" name="cost_price" value="{{ item.cost_price }}"></td>
+                        <td><input type="number" step="0.01" name="current_stock" value="{{ item.current_stock }}"></td>
+                        <td><input type="number" step="0.01" name="safety_stock" value="{{ item.safety_stock }}"></td>
+                        <td class="actions">
+                            <button class="button secondary compact" type="submit">保存</button>
+                    </form>
+                    <form method="post" action="{{ url_for('main.price_delete', item_id=item.id) }}" onsubmit="return confirm('确定删除这条价格吗？');">
+                            <button class="button danger compact" type="submit">删除</button>
+                    </form>
+                        </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="mobile-card-list price-card-list" aria-label="手机价格卡片列表">
+    {% for item in prices %}
+        <article class="price-mobile-card">
+            <form method="post" action="{{ url_for('main.price_edit', item_id=item.id) }}">
+                <div class="card-title">
+                    <strong>{{ item.specification }}</strong>
+                    <span class="tag">{{ item.thickness }}</span>
+                </div>
+                <label>规格<input name="specification" value="{{ item.specification }}"></label>
+                <label>厚度<input name="thickness" value="{{ item.thickness }}"></label>
+                <label>销售价<input type="number" step="0.01" name="sale_price" value="{{ item.sale_price }}"></label>
+                <label>成本价<input type="number" step="0.01" name="cost_price" value="{{ item.cost_price }}"></label>
+                <label>当前库存<input type="number" step="0.01" name="current_stock" value="{{ item.current_stock }}"></label>
+                <label>安全库存<input type="number" step="0.01" name="safety_stock" value="{{ item.safety_stock }}"></label>
+                <div class="card-actions">
+                    <button class="button primary" type="submit">保存</button>
+                </div>
+            </form>
+            <form method="post" action="{{ url_for('main.price_delete', item_id=item.id) }}" onsubmit="return confirm('确定删除这条价格吗？');">
+                <button class="button danger" type="submit">删除</button>
+            </form>
+        </article>
+    {% else %}
+        <p class="empty price-mobile-card">暂无价格数据。</p>
+    {% endfor %}
+</section>
+{% endblock %}

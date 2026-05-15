@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+{% block title %}订单详情 - {{ order.order_no }}{% endblock %}
+{% block content %}
+<section class="page-head detail-head">
+    <div>
+        <h1>订单详情</h1>
+        <p>{{ order.order_no }} · {{ order.customer_name }} · {{ order.status }}</p>
+    </div>
+</section>
+
+<section class="panel detail-section-status order-overview-card">
+    <div class="status-summary">
+        <div class="overview-main">
+            <span class="hint">订单概览</span>
+            <h2>{{ order.order_no }} <span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span></h2>
+            <div class="overview-meta">
+                <span>{{ order.customer_name }}</span>
+                <span>{{ order.product_name }}</span>
+                {% if can_view_quote() %}<span>¥{{ order.final_quote|money }}</span>{% endif %}
+                <span>交期：{{ order.delivery_date or "-" }}</span>
+            </div>
+        </div>
+        <div class="button-row overview-actions">
+            {% set next_status = next_order_status(order.status) %}
+            {% if next_status and can_advance_status(order.status, next_status) %}
+                <form method="post" action="{{ url_for('main.order_next_status', order_id=order.id) }}">
+                    <input type="hidden" name="current_status" value="{{ order.status }}">
+                    <button class="button primary" type="submit">下一步：{{ next_status }}</button>
+                </form>
+            {% endif %}
+            {% if can_edit_order() %}
+                <a class="button secondary" href="{{ url_for('main.order_edit', order_id=order.id) }}">编辑</a>
+            {% endif %}
+            {% if can_view_quote() %}
+                <a class="button secondary" href="{{ url_for('main.order_quote', order_id=order.id) }}">报价单</a>
+            {% endif %}
+            {% if can_edit_cost() %}
+                <a class="button secondary" href="{{ url_for('main.order_cost_edit', order_id=order.id) }}">编辑成本</a>
+            {% endif %}
+            {% if can_view_production_sheet() %}
+                <a class="button info" href="{{ url_for('main.production_sheet', order_id=order.id) }}">生产单</a>
+            {% endif %}
+            {% if can_cancel_order() and order.status != "已取消" %}
+                <form method="post" action="{{ url_for('main.order_cancel', order_id=order.id) }}" onsubmit="return confirm('确定要取消这个订单吗？');">
+                    <input type="hidden" name="current_status" value="{{ order.status }}">
+                    <button class="button danger" type="submit">取消订单</button>
+                </form>
+            {% endif %}
+            {% if can_delete_order() %}
+                <form method="post" action="{{ url_for('main.order_delete', order_id=order.id) }}" onsubmit="return confirm('确定删除这个订单吗？');">
+                    <button class="button danger" type="submit">删除</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<section class="detail-grid">
+    <div class="panel detail-section-basic">
+        <h2>基础信息</h2>
+        <dl class="detail-list">
+            <dt>订单来源</dt><dd>{{ order.source }}</dd>
+            <dt>客户名称</dt><dd>{{ order.customer_name }}</dd>
+            <dt>联系方式</dt><dd>{{ order.customer_contact or "-" }}</dd>
+            <dt>产品名称</dt><dd>{{ order.product_name }}</dd>
+            <dt>材料类型</dt><dd>{{ order.material_type or "-" }}</dd>
+            <dt>规格厚度</dt><dd>{{ order.specification }} / {{ order.thickness }}</dd>
+            <dt>件数</dt><dd>{{ order.quantity }}</dd>
+            <dt>预计板数</dt><dd>{{ order.board_count }}</dd>
+            <dt>交期</dt><dd>{{ order.delivery_date or "-" }}</dd>
+        </dl>
+    </div>
+
+    <div class="panel detail-section-upload">
+        <h2>图纸文件</h2>
+        {% if drawing_file.status == "exists" %}
+            {% set drawing_url = url_for('main.download_upload', filename=drawing_file.filename) %}
+            <p class="drawing-name">图纸文件：{{ drawing_file.original_name }}</p>
+            {% if drawing_file.is_image %}
+                <a class="drawing-preview" href="{{ drawing_url }}" target="_blank" rel="noopener">
+                    <img class="drawing-thumbnail" src="{{ drawing_url }}" alt="{{ drawing_file.original_name }}">
+                </a>
+                <a class="button" href="{{ drawing_url }}" target="_blank" rel="noopener">打开原图</a>
+            {% elif drawing_file.is_pdf %}
+                <a class="button primary" href="{{ drawing_url }}" target="_blank" rel="noopener">查看 PDF</a>
+            {% else %}
+                <a class="button" href="{{ drawing_url }}">下载文件</a>
+            {% endif %}
+        {% elif drawing_file.status == "missing" %}
+            <p class="message error">图纸文件丢失，请重新上传。</p>
+        {% else %}
+            <p class="empty">暂未上传图纸。</p>
+        {% endif %}
+    </div>
+
+    <div class="panel detail-section-attachments">
+        <h2>订单附件归档</h2>
+        <p class="hint">附件会保存到 uploads 目录下的订单专属文件夹，支持 PDF、DXF、DWG、JPG、PNG、ZIP。</p>
+        {% if can_edit_order() or current_user.role == 'production' %}
+            <form class="attachment-upload-form" method="post" enctype="multipart/form-data" action="{{ url_for('main.order_attachment_upload', order_id=order.id) }}">
+                <input type="file" name="attachment_files" multiple accept=".pdf,.dxf,.dwg,.jpg,.jpeg,.png,.zip,image/*" capture="environment">
+                <button class="button primary" type="submit">上传附件</button>
+            </form>
+        {% endif %}
+        <div class="attachment-grid">
+            {% for file in attachments %}
+                {% set file_url = url_for('main.download_upload', filename=file.filename) %}
+                <article class="file-card">
+                    <strong>{{ file.original_name }}</strong>
+                    <span>{{ file.extension|upper }}</span>
+                    {% if file.is_image %}
+                        <a class="drawing-preview" href="{{ file_url }}" target="_blank" rel="noopener">
+                            <img class="drawing-thumbnail" src="{{ file_url }}" alt="{{ file.original_name }}">
+                        </a>
+                        <a class="button secondary compact" href="{{ file_url }}" target="_blank" rel="noopener">打开原图</a>
+                    {% elif file.is_pdf %}
+                        <a class="button primary compact" href="{{ file_url }}" target="_blank" rel="noopener">查看 PDF</a>
+                    {% else %}
+                        <a class="button secondary compact" href="{{ file_url }}">下载文件</a>
+                    {% endif %}
+                </article>
+            {% else %}
+                <p class="empty">暂无归档附件。</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="panel detail-section-production">
+        <h2>生产信息</h2>
+        <dl class="detail-list">
+            <dt>加工要求</dt><dd>{{ order.processing_requirements or "-" }}</dd>
+            <dt>备注</dt><dd>{{ order.notes or "-" }}</dd>
+        </dl>
+    </div>
+
+    <div class="panel detail-section-shipping">
+        <h2>发货信息</h2>
+        <dl class="detail-list">
+            <dt>快递公司</dt><dd>{{ order.shipping_company or "-" }}</dd>
+            <dt>快递单号</dt><dd>{{ order.tracking_number or "-" }}</dd>
+            <dt>运费</dt><dd>¥{{ order.shipping_freight|money }}</dd>
+            <dt>发货时间</dt><dd>{{ order.shipped_at or "-" }}</dd>
+        </dl>
+        {% if can_edit_shipping() %}
+            <form class="shipping-form" method="post" action="{{ url_for('main.order_shipping_update', order_id=order.id) }}">
+                <label>快递公司<input name="shipping_company" value="{{ order.shipping_company or '' }}" placeholder="例如 顺丰、圆通"></label>
+                <label>快递单号<input name="tracking_number" value="{{ order.tracking_number or '' }}"></label>
+                <label>运费<input type="number" step="0.01" name="shipping_freight" value="{{ order.shipping_freight or 0 }}"></label>
+                <label>发货时间<input name="shipped_at" value="{{ order.shipped_at or '' }}" placeholder="例如 2026-05-14 10:30"></label>
+                <button class="button primary" type="submit">保存发货信息</button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if can_view_cost_profit() %}
+        {% set profit_alert = order_profit_alert(order) %}
+        <div class="panel detail-section-profit">
+            <h2>利润核算</h2>
+            <div class="profit-box">
+                <span>销售金额</span><strong>¥{{ order.final_quote|money }}</strong>
+                <span>总成本</span><strong>¥{{ order.total_cost|money }}</strong>
+                <span>利润</span><strong class="{% if order.profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">¥{{ order.profit|money }}</strong>
+                <span>毛利率</span><strong>{{ order.margin_rate|percent }}</strong>
+                <span>利润预警</span>
+                <strong>
+                    {% if profit_alert.code != "normal" %}
+                        <span class="tag profit-alert-badge" data-alert="{{ profit_alert.code }}">{{ profit_alert.label }}</span>
+                    {% else %}
+                        正常
+                    {% endif %}
+                </strong>
+            </div>
+        </div>
+    {% endif %}
+</section>
+
+<section class="two-columns">
+    {% if can_view_quote() %}
+    <div class="panel detail-section-quote">
+        <h2>报价明细</h2>
+        <dl class="detail-list compact">
+            <dt>单张销售价</dt><dd>¥{{ order.sale_unit_price|money }}</dd>
+            <dt>板材报价</dt><dd>¥{{ order.material_quote|money }}</dd>
+            <dt>切割费</dt><dd>¥{{ order.cutting_fee|money }}</dd>
+            <dt>打孔费</dt><dd>¥{{ order.hole_fee|money }}</dd>
+            <dt>倒角费</dt><dd>¥{{ order.chamfer_fee|money }}</dd>
+            <dt>抛光费</dt><dd>¥{{ order.polishing_fee|money }}</dd>
+            <dt>包装费</dt><dd>¥{{ order.packaging_fee|money }}</dd>
+            <dt>快递费</dt><dd>¥{{ order.shipping_fee|money }}</dd>
+            <dt>其他费用</dt><dd>¥{{ order.other_fee|money }}</dd>
+            <dt>报价小计</dt><dd>¥{{ order.quote_subtotal|money }}</dd>
+            <dt>加急费</dt><dd>¥{{ order.urgent_fee|money }}</dd>
+            <dt>税费</dt><dd>¥{{ order.tax_fee|money }}</dd>
+            <dt>自动报价</dt><dd>¥{{ order.quote_total|money }}</dd>
+            <dt>最终报价</dt><dd>¥{{ order.final_quote|money }}</dd>
+        </dl>
+    </div>
+    <div class="panel detail-section-quote-script">
+        <h2>客户报价话术</h2>
+        <textarea class="quote-script-box" readonly data-copy-source>您好，{{ order.customer_name }}，您咨询的 {{ order.product_name }}（{{ order.specification }} / {{ order.thickness }}，数量 {{ order.quantity }} 件）报价为 ¥{{ order.final_quote|money }}。{% if order.delivery_date %}预计交期：{{ order.delivery_date }}。{% endif %}如确认下单，请回复确认，我们会继续安排生产。</textarea>
+        <button class="button secondary" type="button" data-copy-text>复制话术</button>
+    </div>
+    {% endif %}
+    {% if can_view_cost_profit() %}
+    <div class="panel detail-section-cost">
+        <h2>成本明细</h2>
+        <dl class="detail-list compact">
+            <dt>单张成本价</dt><dd>¥{{ order.cost_unit_price|money }}</dd>
+            <dt>板材成本</dt><dd>¥{{ order.material_cost|money }}</dd>
+            <dt>人工成本</dt><dd>¥{{ order.labor_cost|money }}</dd>
+            <dt>机器成本</dt><dd>¥{{ order.machine_cost|money }}</dd>
+            <dt>包装成本</dt><dd>¥{{ order.packaging_cost|money }}</dd>
+            <dt>快递成本</dt><dd>¥{{ order.shipping_cost|money }}</dd>
+            <dt>平台手续费</dt><dd>¥{{ order.platform_fee|money }}</dd>
+            <dt>其他成本</dt><dd>¥{{ order.other_cost|money }}</dd>
+            <dt>总成本</dt><dd>¥{{ order.total_cost|money }}</dd>
+        </dl>
+    </div>
+    {% endif %}
+</section>
+
+<section class="panel detail-section-exceptions">
+    <div class="section-title">
+        <div>
+            <h2>异常订单记录</h2>
+            <p class="hint">记录图纸、材料、加工、返工、发货等异常情况。</p>
+        </div>
+    </div>
+    <form class="form-grid exception-form" method="post" action="{{ url_for('main.order_exception_add', order_id=order.id) }}">
+        <label>异常类型
+            <select name="exception_type" required>
+                {% for exception_type in exception_types %}
+                    <option value="{{ exception_type }}">{{ exception_type }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>处理人
+            <input name="handler" value="{{ current_user.username if current_user else '' }}">
+        </label>
+        <label class="wide">说明
+            <textarea name="description" required placeholder="请填写异常原因、影响和当前情况"></textarea>
+        </label>
+        <label class="wide">处理结果
+            <textarea name="result" placeholder="未处理可以先留空，后续补充处理结果"></textarea>
+        </label>
+        <div class="wide button-row">
+            <button class="button primary" type="submit">添加异常记录</button>
+        </div>
+    </form>
+
+    <div class="desktop-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>异常类型</th>
+                    <th>说明</th>
+                    <th>处理人</th>
+                    <th>处理结果</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in order_exceptions %}
+                    <tr>
+                        <td>{{ item.created_at|date_text }}</td>
+                        <td><span class="tag exception-badge">{{ item.exception_type }}</span></td>
+                        <td>{{ item.description or "-" }}</td>
+                        <td>{{ item.handler or "-" }}</td>
+                        <td>{{ item.result or "未处理" }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5" class="empty">暂无异常记录。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mobile-card-list">
+        {% for item in order_exceptions %}
+            <article class="order-mobile-card">
+                <div class="card-title">
+                    <strong>{{ item.exception_type }}</strong>
+                    <span>{{ item.created_at|date_text }}</span>
+                </div>
+                <div class="card-row"><span>说明</span><strong>{{ item.description or "-" }}</strong></div>
+                <div class="card-row"><span>处理人</span><strong>{{ item.handler or "-" }}</strong></div>
+                <div class="card-row"><span>处理结果</span><strong>{{ item.result or "未处理" }}</strong></div>
+            </article>
+        {% else %}
+            <p class="empty">暂无异常记录。</p>
+        {% endfor %}
+    </div>
+</section>
+
+<section class="panel detail-section-history">
+    <h2>状态变更历史</h2>
+    <div class="desktop-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>变更时间</th>
+                    <th>状态变化</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in status_history %}
+                    <tr>
+                        <td>{{ item.changed_at|date_text }}</td>
+                        <td>{{ item.old_status }} → {{ item.new_status }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="2" class="empty">暂无状态变更记录。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mobile-card-list history-list">
+        {% for item in status_history %}
+            <article class="mini-card">
+                <strong>{{ item.old_status }} → {{ item.new_status }}</strong>
+                <span>{{ item.changed_at|date_text }}</span>
+            </article>
+        {% else %}
+            <p class="empty">暂无状态变更记录。</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

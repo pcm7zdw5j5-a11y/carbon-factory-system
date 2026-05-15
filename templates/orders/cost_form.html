@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}编辑成本 - {{ order.order_no }}{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>编辑成本</h1>
+        <p>{{ order.order_no }} · {{ order.customer_name }}</p>
+    </div>
+    <a class="button secondary" href="{{ url_for('main.order_detail', order_id=order.id) }}">返回详情</a>
+</section>
+
+<form class="panel" method="post">
+    <div class="form-grid">
+        <label>单张成本价<input type="number" step="0.01" name="cost_unit_price" value="{{ order.cost_unit_price }}"></label>
+        <label>人工成本<input type="number" step="0.01" name="labor_cost" value="{{ order.labor_cost }}"></label>
+        <label>机器成本<input type="number" step="0.01" name="machine_cost" value="{{ order.machine_cost }}"></label>
+        <label>包装成本<input type="number" step="0.01" name="packaging_cost" value="{{ order.packaging_cost }}"></label>
+        <label>快递成本<input type="number" step="0.01" name="shipping_cost" value="{{ order.shipping_cost }}"></label>
+        <label>平台手续费<input type="number" step="0.01" name="platform_fee" value="{{ order.platform_fee }}"></label>
+        <label>其他成本<input type="number" step="0.01" name="other_cost" value="{{ order.other_cost }}"></label>
+    </div>
+    <div class="sticky-actions">
+        <button class="button primary" type="submit">保存成本</button>
+        <a class="button secondary" href="{{ url_for('main.order_detail', order_id=order.id) }}">取消</a>
+    </div>
+</form>
+{% endblock %}

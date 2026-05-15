@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}用户管理 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>用户管理</h1>
+</section>
+
+<section class="panel user-create-card">
+    <h2>新增用户</h2>
+    <form class="inline-form" method="post">
+        <label>用户名<input name="username" required></label>
+        <label>初始密码<input type="password" name="password" required></label>
+        <label>角色
+            <select name="role">
+                {% for value, label in roles.items() %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button class="button primary" type="submit">新增用户</button>
+    </form>
+</section>
+
+<section class="panel desktop-table">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户名</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>
+                        <span class="tag role-badge" data-role="{{ user.role }}">{{ roles[user.role] }}</span>
+                        <form method="post" action="{{ url_for('main.user_role', user_id=user.id) }}" class="table-form">
+                            <select name="role">
+                                {% for value, label in roles.items() %}
+                                    <option value="{{ value }}" {% if user.role == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                            <button class="button secondary compact" type="submit">保存角色</button>
+                        </form>
+                    </td>
+                    <td><span class="tag user-status-badge" data-active="{{ 1 if user.is_active else 0 }}">{{ "启用" if user.is_active else "停用" }}</span></td>
+                    <td>{{ user.created_at|date_text }}</td>
+                    <td class="actions">
+                        <form method="post" action="{{ url_for('main.user_password', user_id=user.id) }}" class="password-form">
+                            <input type="password" name="password" placeholder="新密码" required>
+                            <button class="button secondary compact" type="submit">改密码</button>
+                        </form>
+                        <form method="post" action="{{ url_for('main.user_toggle', user_id=user.id) }}">
+                            <input type="hidden" name="is_active" value="{{ 0 if user.is_active else 1 }}">
+                            <button class="button secondary compact" type="submit">{{ "停用" if user.is_active else "启用" }}</button>
+                        </form>
+                        <form method="post" action="{{ url_for('main.user_delete', user_id=user.id) }}" onsubmit="return confirm('确定删除这个用户吗？');">
+                            <button class="button danger compact" type="submit">删除</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="mobile-card-list user-card-list" aria-label="手机用户卡片列表">
+    {% for user in users %}
+        <article class="user-mobile-card">
+            <div class="card-title">
+                <strong>{{ user.username }}</strong>
+                <span class="tag user-status-badge" data-active="{{ 1 if user.is_active else 0 }}">{{ "启用" if user.is_active else "停用" }}</span>
+            </div>
+            <div class="card-row"><span>ID</span><strong>{{ user.id }}</strong></div>
+            <div class="card-row"><span>角色</span><strong><span class="tag role-badge" data-role="{{ user.role }}">{{ roles[user.role] }}</span></strong></div>
+            <div class="card-row"><span>创建时间</span><strong>{{ user.created_at|date_text }}</strong></div>
+            <form method="post" action="{{ url_for('main.user_role', user_id=user.id) }}" class="table-form">
+                <select name="role">
+                    {% for value, label in roles.items() %}
+                        <option value="{{ value }}" {% if user.role == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <button class="button secondary" type="submit">保存角色</button>
+            </form>
+            <form method="post" action="{{ url_for('main.user_password', user_id=user.id) }}" class="password-form">
+                <input type="password" name="password" placeholder="新密码" required>
+                <button class="button secondary" type="submit">修改密码</button>
+            </form>
+            <div class="card-actions">
+                <form method="post" action="{{ url_for('main.user_toggle', user_id=user.id) }}">
+                    <input type="hidden" name="is_active" value="{{ 0 if user.is_active else 1 }}">
+                    <button class="button secondary" type="submit">{{ "停用" if user.is_active else "启用" }}</button>
+                </form>
+                <form method="post" action="{{ url_for('main.user_delete', user_id=user.id) }}" onsubmit="return confirm('确定删除这个用户吗？');">
+                    <button class="button danger" type="submit">删除</button>
+                </form>
+            </div>
+        </article>
+    {% else %}
+        <p class="empty user-mobile-card">暂无用户。</p>
+    {% endfor %}
+</section>
+{% endblock %}

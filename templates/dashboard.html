@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}首页 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <h1>首页仪表盘</h1>
+    {% if can_create_order() %}
+        <a class="button primary" href="{{ url_for('main.order_new') }}">新建订单</a>
+    {% endif %}
+</section>
+
+<section class="panel welcome-card">
+    <div>
+        <span class="eyebrow">欢迎回来</span>
+        <h2>{{ current_user.username }}</h2>
+        <p>今天共有 {{ stats.today_orders }} 个订单需要处理。</p>
+    </div>
+    <div class="welcome-date">{{ current_date or "" }}</div>
+</section>
+
+<section class="metric-grid">
+    <div class="metric"><em>今</em><span>今日订单数</span><strong>{{ stats.today_orders }}</strong></div>
+    <div class="metric"><em>月</em><span>本月订单数</span><strong>{{ stats.month_orders }}</strong></div>
+    {% if can_view_quote() %}
+        <div class="metric"><em>售</em><span>本月销售额</span><strong>¥{{ stats.month_sales|money }}</strong></div>
+    {% endif %}
+    {% if can_view_cost_profit() %}
+        <div class="metric"><em>本</em><span>本月成本</span><strong>¥{{ stats.month_cost|money }}</strong></div>
+        <div class="metric"><em>利</em><span>本月利润</span><strong class="{% if stats.month_profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">¥{{ stats.month_profit|money }}</strong></div>
+    {% endif %}
+    <div class="metric"><em>板</em><span>待下板订单</span><strong>{{ stats.pending_board }}</strong></div>
+    <div class="metric"><em>工</em><span>加工中订单</span><strong>{{ stats.processing }}</strong></div>
+    <div class="metric"><em>发</em><span>待发货订单</span><strong>{{ stats.shipping }}</strong></div>
+    <div class="metric"><em>异</em><span>未处理异常订单</span><strong class="{% if stats.unresolved_exception_orders > 0 %}danger-text{% endif %}">{{ stats.unresolved_exception_orders }}</strong></div>
+    {% if can_view_cost_profit() %}
+        <div class="metric"><em>警</em><span>低利润订单</span><strong class="{% if stats.low_profit_orders > 0 %}danger-text{% endif %}">{{ stats.low_profit_orders }}</strong></div>
+    {% endif %}
+</section>
+
+<section class="panel todo-reminders">
+    <div class="section-title">
+        <div>
+            <h2>待办提醒</h2>
+            <p class="hint">按当前角色显示最需要处理的订单。</p>
+        </div>
+    </div>
+    <div class="todo-reminder-grid">
+        {% for group in todo_groups %}
+            <article class="todo-card" data-todo-key="{{ group.key }}">
+                <div class="todo-card-head">
+                    <div>
+                        <h3>{{ group.title }}</h3>
+                        <p>{{ group.hint }}</p>
+                    </div>
+                    <strong>{{ group.orders|length }}</strong>
+                </div>
+                <div class="todo-order-list">
+                    {% for order in group.orders %}
+                        <a class="todo-order-item" href="{{ url_for('main.order_detail', order_id=order.id) }}">
+                            <span>{{ order.order_no }}</span>
+                            <small>{{ order.customer_name }} · {{ order.product_name }}</small>
+                            <em>{{ order.status }} · 交期 {{ order.delivery_date or "-" }}</em>
+                        </a>
+                    {% else %}
+                        <p class="empty">暂无待办。</p>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+
+{% if purchase_reminders %}
+<section class="panel purchase-reminder">
+    <div class="section-title">
+        <div>
+            <h2>采购提醒</h2>
+            <p class="hint">以下板材当前库存低于安全库存，请及时补货。</p>
+        </div>
+        <a class="button primary no-print" href="{{ url_for('main.purchase_list') }}">一键生成采购清单</a>
+    </div>
+    <div class="desktop-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>规格</th>
+                    <th>厚度</th>
+                    <th>当前库存</th>
+                    <th>安全库存</th>
+                    <th>建议采购数量</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in purchase_reminders %}
+                    <tr>
+                        <td>{{ item.specification }}</td>
+                        <td>{{ item.thickness }}</td>
+                        <td>{{ item.current_stock|money }}</td>
+                        <td>{{ item.safety_stock|money }}</td>
+                        <td><strong class="warning-text">{{ item.suggested_purchase_qty|money }}</strong></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mobile-card-list purchase-card-list">
+        {% for item in purchase_reminders %}
+            <article class="order-mobile-card">
+                <div class="card-title">
+                    <strong>{{ item.specification }}</strong>
+                    <span class="tag">{{ item.thickness }}</span>
+                </div>
+                <div class="card-row"><span>当前库存</span><strong>{{ item.current_stock|money }}</strong></div>
+                <div class="card-row"><span>安全库存</span><strong>{{ item.safety_stock|money }}</strong></div>
+                <div class="card-row"><span>建议采购数量</span><strong class="warning-text">{{ item.suggested_purchase_qty|money }}</strong></div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="panel quick-actions">
+    <div class="section-title">
+        <h2>快捷操作</h2>
+    </div>
+    <div class="quick-action-grid">
+        {% if can_create_order() %}<a class="button primary" href="{{ url_for('main.order_new') }}">新建订单</a>{% endif %}
+        <a class="button secondary" href="{{ url_for('main.orders') }}">查看订单列表</a>
+        {% if can_view_statistics() %}<a class="button secondary" href="{{ url_for('main.statistics') }}">查看月度统计</a>{% endif %}
+        <a class="button secondary" href="{{ url_for('main.orders', status='待下板') }}">查看待下板订单</a>
+        {% if can_manage_users() %}
+            <form method="post" action="{{ url_for('main.backup') }}" onsubmit="return confirm('确定现在备份数据库和图纸文件吗？');">
+                <button class="button secondary" type="submit">一键备份</button>
+            </form>
+        {% endif %}
+    </div>
+</section>
+
+{% if focus_statuses %}
+<section class="panel">
+    <div class="section-title">
+        <h2>我的关注订单</h2>
+        <span class="hint">{{ focus_statuses|join("、") }}</span>
+    </div>
+    <div class="desktop-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>订单编号</th>
+                    <th>客户</th>
+                    <th>产品</th>
+                    <th>状态</th>
+                    <th>交期</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in focus_orders %}
+                    <tr>
+                        <td><a href="{{ url_for('main.order_detail', order_id=order.id) }}">{{ order.order_no }}</a></td>
+                        <td>{{ order.customer_name }}</td>
+                        <td>{{ order.product_name }}</td>
+                        <td><span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span></td>
+                        <td>{{ order.delivery_date or "-" }}</td>
+                        <td><a href="{{ url_for('main.order_detail', order_id=order.id) }}">详情</a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6" class="empty">暂无需要关注的订单。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mobile-card-list">
+        {% for order in focus_orders %}
+            <article class="order-mobile-card">
+                <div class="card-title">
+                    <strong>{{ order.order_no }}</strong>
+                    <span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span>
+                </div>
+                <div class="card-row"><span>客户</span><strong>{{ order.customer_name }}</strong></div>
+                <div class="card-row"><span>产品</span><strong>{{ order.product_name }}</strong></div>
+                <div class="card-row"><span>交期</span><strong>{{ order.delivery_date or "-" }}</strong></div>
+                <div class="card-actions">
+                    <a class="button" href="{{ url_for('main.order_detail', order_id=order.id) }}">查看详情</a>
+                </div>
+            </article>
+        {% else %}
+            <p class="empty">暂无需要关注的订单。</p>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section class="panel">
+    <div class="section-title">
+        <h2>最近订单</h2>
+        <a href="{{ url_for('main.orders') }}">查看全部</a>
+    </div>
+    <div class="desktop-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>订单编号</th>
+                    <th>客户</th>
+                    <th>产品</th>
+                    <th>状态</th>
+                    {% if can_view_quote() %}<th>销售金额</th>{% endif %}
+                    {% if can_view_cost_profit() %}<th>利润</th>{% endif %}
+                    <th>创建时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in latest_orders %}
+                    <tr>
+                        <td><a href="{{ url_for('main.order_detail', order_id=order.id) }}">{{ order.order_no }}</a></td>
+                        <td>{{ order.customer_name }}</td>
+                        <td>{{ order.product_name }}</td>
+                        <td><span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span></td>
+                        {% if can_view_quote() %}<td class="money-cell">¥{{ order.final_quote|money }}</td>{% endif %}
+                        {% if can_view_cost_profit() %}<td class="money-cell {% if order.profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">¥{{ order.profit|money }}</td>{% endif %}
+                        <td>{{ order.created_at|date_text }}</td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="7" class="empty">还没有订单。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mobile-card-list">
+        {% for order in latest_orders %}
+            <article class="order-mobile-card">
+                <div class="card-title">
+                    <strong>{{ order.order_no }}</strong>
+                    <span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span>
+                </div>
+                <div class="card-row"><span>客户</span><strong>{{ order.customer_name }}</strong></div>
+                <div class="card-row"><span>产品</span><strong>{{ order.product_name }}</strong></div>
+                {% if can_view_quote() %}
+                    <div class="card-row"><span>销售金额</span><strong>¥{{ order.final_quote|money }}</strong></div>
+                {% endif %}
+                {% if can_view_cost_profit() %}
+                    <div class="card-row"><span>利润</span><strong>¥{{ order.profit|money }}</strong></div>
+                {% endif %}
+                <div class="card-row"><span>创建时间</span><strong>{{ order.created_at|date_text }}</strong></div>
+                <div class="card-actions">
+                    <a class="button" href="{{ url_for('main.order_detail', order_id=order.id) }}">查看详情</a>
+                </div>
+            </article>
+        {% else %}
+            <p class="empty">还没有订单。</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

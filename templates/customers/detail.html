@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}客户详情 - {{ customer.name }}{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>客户详情</h1>
+        <p>{{ customer.name }}{% if customer.contact %} / {{ customer.contact }}{% endif %}</p>
+    </div>
+    <a class="button secondary" href="{{ url_for('main.customers') }}">返回客户列表</a>
+</section>
+
+<section class="metric-grid">
+    <div class="metric"><em>单</em><span>历史订单</span><strong>{{ stats.order_count }}</strong></div>
+    <div class="metric"><em>售</em><span>累计销售额</span><strong>¥{{ stats.sales_total|money }}</strong></div>
+    {% if can_view_cost_profit() %}
+        <div class="metric"><em>利</em><span>累计利润</span><strong class="{% if stats.profit_total >= 0 %}profit-positive{% else %}profit-negative{% endif %}">¥{{ stats.profit_total|money }}</strong></div>
+    {% endif %}
+    <div class="metric"><em>近</em><span>最近下单时间</span><strong>{{ stats.recent_order_time|date_text or "-" }}</strong></div>
+</section>
+
+<section class="two-columns">
+    <div class="panel">
+        <h2>客户信息</h2>
+        <form class="form-grid" method="post">
+            <label>客户名称<input name="name" required value="{{ customer.name }}"></label>
+            <label>联系方式<input name="contact" value="{{ customer.contact or '' }}"></label>
+            <label>微信<input name="wechat" value="{{ customer.wechat or '' }}"></label>
+            <label>淘宝昵称<input name="taobao_nick" value="{{ customer.taobao_nick or '' }}"></label>
+            <label>来源
+                <select name="source">
+                    <option value="">未填写</option>
+                    {% for source in sources %}
+                        <option value="{{ source }}" {% if customer.source == source %}selected{% endif %}>{{ source }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label class="wide">备注<textarea name="notes">{{ customer.notes or '' }}</textarea></label>
+            <button class="button primary" type="submit">保存客户信息</button>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>常用规格</h2>
+        <div class="mini-list">
+            {% for spec in common_specs %}
+                <div class="mini-card">
+                    <strong>{{ spec.specification }} / {{ spec.thickness }}</strong>
+                    <span>{{ spec.total }} 单</span>
+                </div>
+            {% else %}
+                <p class="empty">暂无常用规格。</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="panel">
+    <div class="section-title">
+        <h2>历史订单</h2>
+        <a class="button secondary compact" href="{{ url_for('main.order_new') }}">新建订单</a>
+    </div>
+    <div class="desktop-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>订单编号</th>
+                    <th>日期</th>
+                    <th>来源</th>
+                    <th>产品</th>
+                    <th>规格</th>
+                    <th>状态</th>
+                    {% if can_view_quote() %}<th>销售金额</th>{% endif %}
+                    {% if can_view_cost_profit() %}<th>利润</th>{% endif %}
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                    <tr>
+                        <td>{{ order.order_no }}</td>
+                        <td>{{ order.created_at|date_text }}</td>
+                        <td>{{ order.source }}</td>
+                        <td>{{ order.product_name }}</td>
+                        <td>{{ order.specification }} / {{ order.thickness }}</td>
+                        <td><span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span></td>
+                        {% if can_view_quote() %}<td class="money-cell">¥{{ order.final_quote|money }}</td>{% endif %}
+                        {% if can_view_cost_profit() %}<td class="money-cell {% if order.profit >= 0 %}profit-positive{% else %}profit-negative{% endif %}">¥{{ order.profit|money }}</td>{% endif %}
+                        <td><a class="button info compact" href="{{ url_for('main.order_detail', order_id=order.id) }}">详情</a></td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="9" class="empty">暂无历史订单。</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mobile-card-list">
+        {% for order in orders %}
+            <article class="order-mobile-card">
+                <div class="card-title">
+                    <strong>{{ order.order_no }}</strong>
+                    <span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span>
+                </div>
+                <div class="card-row"><span>产品</span><strong>{{ order.product_name }}</strong></div>
+                <div class="card-row"><span>规格</span><strong>{{ order.specification }} / {{ order.thickness }}</strong></div>
+                {% if can_view_quote() %}<div class="card-row"><span>销售金额</span><strong>¥{{ order.final_quote|money }}</strong></div>{% endif %}
+                <div class="card-actions">
+                    <a class="button info" href="{{ url_for('main.order_detail', order_id=order.id) }}">查看订单</a>
+                </div>
+            </article>
+        {% else %}
+            <p class="empty order-mobile-card">暂无历史订单。</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

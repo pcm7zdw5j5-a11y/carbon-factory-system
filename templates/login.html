@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>登录 - 碳纤维工厂订单管理系统 V1</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=style-20260514">
+</head>
+<body class="login-body">
+    <main class="login-card">
+        <h1>碳纤维工厂订单管理系统 V1</h1>
+        <p>请先登录</p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="messages">
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        <form method="post">
+            <label>用户名<input name="username" required autofocus></label>
+            <label>密码<input type="password" name="password" required></label>
+            <button class="button primary login-button" type="submit">登录</button>
+        </form>
+    </main>
+    <script src="{{ url_for('static', filename='app.js') }}?v=style-20260514"></script>
+</body>
+</html>

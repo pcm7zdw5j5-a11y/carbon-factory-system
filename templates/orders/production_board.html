@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}生产看板 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="page-head">
+    <div>
+        <h1>生产看板</h1>
+        <p class="muted">按生产状态查看待处理订单，超期订单会自动标红。</p>
+    </div>
+    <a class="button secondary" href="{{ url_for('main.orders', status='待下板') }}">查看订单列表</a>
+</section>
+
+<section class="production-board-grid" aria-label="生产订单状态看板">
+    {% for column in board_columns %}
+        <section class="production-board-column">
+            <header class="production-column-head">
+                <div>
+                    <span class="tag status-badge" data-status="{{ column.status }}">{{ column.status }}</span>
+                    <strong>{{ column.orders|length }}</strong>
+                </div>
+            </header>
+
+            <div class="production-card-stack">
+                {% for order in column.orders %}
+                    {% set is_overdue = order.delivery_date and order.delivery_date < today %}
+                    <article class="production-card{% if is_overdue %} overdue{% endif %}">
+                        <a class="production-card-main" href="{{ url_for('main.order_detail', order_id=order.id) }}">
+                            <div class="production-card-title">
+                                <strong>{{ order.order_no }}</strong>
+                                {% if is_overdue %}
+                                    <span class="overdue-badge">超期</span>
+                                {% else %}
+                                    <span class="normal-badge">正常</span>
+                                {% endif %}
+                            </div>
+                            <dl class="production-card-meta">
+                                <div>
+                                    <dt>客户</dt>
+                                    <dd>{{ order.customer_name }}</dd>
+                                </div>
+                                <div>
+                                    <dt>产品</dt>
+                                    <dd>{{ order.product_name }}</dd>
+                                </div>
+                                <div>
+                                    <dt>数量</dt>
+                                    <dd>{{ order.quantity }}</dd>
+                                </div>
+                                <div>
+                                    <dt>交期</dt>
+                                    <dd>{{ order.delivery_date or "-" }}</dd>
+                                </div>
+                            </dl>
+                        </a>
+                        <div class="production-card-actions">
+                            {% set next_status = next_order_status(order.status) %}
+                            {% if next_status and can_advance_status(order.status, next_status) %}
+                                <form method="post" action="{{ url_for('main.order_next_status', order_id=order.id) }}">
+                                    <input type="hidden" name="return_to" value="production_board">
+                                    <input type="hidden" name="current_status" value="{{ order.status }}">
+                                    <button class="button primary compact" type="submit">下一步：{{ next_status }}</button>
+                                </form>
+                            {% endif %}
+                            <a class="button info compact" href="{{ url_for('main.order_detail', order_id=order.id) }}">详情</a>
+                        </div>
+                    </article>
+                {% else %}
+                    <p class="empty production-empty">暂无订单</p>
+                {% endfor %}
+            </div>
+        </section>
+    {% endfor %}
+</section>
+{% endblock %}

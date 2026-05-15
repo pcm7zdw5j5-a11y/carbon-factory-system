@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}无权限访问 - 碳纤维工厂订单管理系统 V1{% endblock %}
+{% block content %}
+<section class="panel">
+    <h1>无权限访问</h1>
+    <p class="hint">当前账号没有访问这个页面或执行这个操作的权限。</p>
+    <a class="button primary" href="{{ url_for('main.dashboard') }}">返回首页</a>
+</section>
+{% endblock %}

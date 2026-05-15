@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}生产单 - {{ order.order_no }}{% endblock %}
+{% block content %}
+<section class="page-head print-hidden">
+    <h1>生产单</h1>
+    <button class="button primary" onclick="window.print()">打印</button>
+</section>
+
+<section class="production-sheet">
+    <h1>碳纤维工厂生产单</h1>
+    <table>
+        <tr><th>订单编号</th><td>{{ order.order_no }}</td><th>订单来源</th><td>{{ order.source }}</td></tr>
+        <tr><th>客户名称</th><td>{{ order.customer_name }}</td><th>当前状态</th><td><span class="tag status-badge" data-status="{{ order.status }}">{{ order.status }}</span></td></tr>
+        <tr><th>产品名称</th><td>{{ order.product_name }}</td><th>材料类型</th><td>{{ order.material_type }}</td></tr>
+        <tr><th>板材规格</th><td>{{ order.specification }}</td><th>厚度</th><td>{{ order.thickness }}</td></tr>
+        <tr><th>客户要求件数</th><td>{{ order.quantity }}</td><th>预计使用板数</th><td>{{ order.board_count }}</td></tr>
+        <tr><th>图纸文件名</th><td colspan="3">{{ order.drawing_original_name or "-" }}</td></tr>
+        <tr><th>加工要求</th><td colspan="3">{{ order.processing_requirements or "-" }}</td></tr>
+        <tr><th>交期</th><td>{{ order.delivery_date or "-" }}</td><th>备注</th><td>{{ order.notes or "-" }}</td></tr>
+    </table>
+    <div class="sign-row">
+        <span>下板：</span>
+        <span>加工：</span>
+        <span>质检：</span>
+        <span>包装：</span>
+    </div>
+</section>
+{% endblock %}
