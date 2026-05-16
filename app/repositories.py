@@ -622,17 +622,34 @@ def update_order_shipping(order_id, data):
             tracking_number = ?,
             shipping_freight = ?,
             shipped_at = ?,
+            shipping_note = ?,
             updated_at = ?
         WHERE id = ?
         """,
         (
-            data["shipping_company"],
-            data["tracking_number"],
-            data["shipping_freight"],
-            data["shipped_at"],
+            data.get("shipping_company", ""),
+            data.get("tracking_number", ""),
+            data.get("shipping_freight", 0),
+            data.get("shipped_at", ""),
+            data.get("shipping_note", ""),
             now_text(),
             order_id,
         ),
+    )
+    db.commit()
+
+
+def ensure_order_shipped_at(order_id):
+    db = get_db()
+    timestamp = now_text()
+    db.execute(
+        """
+        UPDATE orders
+        SET shipped_at = COALESCE(NULLIF(shipped_at, ''), ?),
+            updated_at = ?
+        WHERE id = ?
+        """,
+        (timestamp, timestamp, order_id),
     )
     db.commit()
 

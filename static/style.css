@@ -726,6 +726,17 @@ textarea {
     grid-column: span 2;
 }
 
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
 /* Buttons */
 .button,
 .btn,
@@ -1006,6 +1017,7 @@ tr:last-child td {
 .status-badge[data-status="已发货"] { background: #DBEAFE; color: #1E3A8A; }
 .status-badge[data-status="已完成"] { background: #DCFCE7; color: var(--success); }
 .status-badge[data-status="已取消"] { background: #FEE2E2; color: var(--danger); }
+.tag.warning { background: #FEF3C7; color: #B45309; }
 .profit-alert-badge[data-alert="low"] { background: #FEF3C7; color: #B45309; }
 .profit-alert-badge[data-alert="danger"] { background: #FEE2E2; color: var(--danger); }
 .profit-alert-badge[data-alert="loss"] { background: #FECACA; color: #991B1B; }

@@ -115,6 +115,7 @@ def init_db():
             tracking_number TEXT,
             shipping_freight REAL NOT NULL DEFAULT 0,
             shipped_at TEXT,
+            shipping_note TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -263,6 +264,7 @@ def migrate_order_shipping_columns(db):
             "tracking_number": "TEXT",
             "shipping_freight": "REAL NOT NULL DEFAULT 0",
             "shipped_at": "TEXT",
+            "shipping_note": "TEXT",
         },
     )
 

@@ -31,7 +31,7 @@ from .auth import (
     login_required,
     role_required,
 )
-from .config import ALLOWED_EXTENSIONS, ORDER_SOURCES, ORDER_STATUSES, next_order_status
+from .config import ALLOWED_EXTENSIONS, ORDER_SOURCES, ORDER_STATUSES, SHIPPING_COMPANIES, next_order_status
 from .database import get_db
 from .repositories import (
     create_order,
@@ -44,6 +44,7 @@ from .repositories import (
     delete_order,
     delete_price_item,
     delete_user,
+    ensure_order_shipped_at,
     get_order,
     get_order_by_no,
     get_customer,
@@ -510,6 +511,15 @@ def shipping_info_complete(order):
         and order_field(order, "tracking_number")
         and order_field(order, "shipped_at")
     )
+
+
+def shipping_return_url(order_id, return_to=None):
+    target = return_to or request.values.get("return_to")
+    if target == "production_board":
+        return url_for("main.production_board")
+    if target == "list":
+        return url_for("main.orders")
+    return url_for("main.order_detail", order_id=order_id)
 
 
 def create_backup_archive():
@@ -1300,24 +1310,21 @@ def order_next_status(order_id):
     if not order:
         abort(404)
 
+    return_to = request.form.get("return_to")
     submitted_status = request.form.get("current_status")
     if submitted_status and submitted_status != order["status"]:
         flash("订单状态已被其他人更新，请刷新页面。", "error")
-        if request.form.get("return_to") == "production_board":
-            return redirect(url_for("main.production_board"))
-        if request.form.get("return_to") == "list":
-            return redirect(url_for("main.orders"))
-        return redirect(url_for("main.order_detail", order_id=order_id))
+        return redirect(shipping_return_url(order_id, return_to))
 
     next_status = next_order_status(order["status"])
     if not next_status:
         flash("当前订单状态没有下一步。", "error")
     elif not can_advance_status(order["status"], next_status):
         flash("无权限推进当前状态。", "error")
-    elif next_status == "已发货" and not shipping_info_complete(order):
-        flash("请先填写快递信息，再将订单状态改为已发货。", "error")
     else:
         if update_order_status_if_current(order_id, order["status"], next_status):
+            if next_status == "已发货":
+                ensure_order_shipped_at(order_id)
             create_operation_log(
                 current_username(),
                 "状态下一步",
@@ -1326,35 +1333,53 @@ def order_next_status(order_id):
                 after_content={"status": next_status},
             )
             flash(f"订单状态已更新为：{next_status}。", "success")
+            if next_status == "已发货":
+                return redirect(url_for("main.order_shipping_update", order_id=order_id, return_to=return_to or "detail"))
         else:
             flash("订单状态已被其他人更新，请刷新页面。", "error")
 
-    if request.form.get("return_to") == "production_board":
-        return redirect(url_for("main.production_board"))
-    if request.form.get("return_to") == "list":
-        return redirect(url_for("main.orders"))
-    return redirect(url_for("main.order_detail", order_id=order_id))
+    return redirect(shipping_return_url(order_id, return_to))
 
 
-@bp.route("/orders/<int:order_id>/shipping", methods=["POST"])
+@bp.route("/orders/<int:order_id>/shipping", methods=["GET", "POST"])
 @role_required("admin", "sales", "production")
 def order_shipping_update(order_id):
     order = get_order(order_id)
     if not order:
         abort(404)
 
+    return_to = request.values.get("return_to")
+    if request.method == "GET":
+        return render_template(
+            "orders/shipping_form.html",
+            order=order,
+            shipping_companies=SHIPPING_COMPANIES,
+            return_to=return_to,
+            cancel_url=shipping_return_url(order_id, return_to),
+        )
+
+    before_shipping = row_snapshot(
+        order,
+        ["shipping_company", "tracking_number", "shipping_freight", "shipped_at", "shipping_note"],
+    )
+    shipped_at = request.form.get("shipped_at", "").strip() or order_field(order, "shipped_at") or now_text()
     data = {
         "shipping_company": request.form.get("shipping_company", "").strip(),
         "tracking_number": request.form.get("tracking_number", "").strip(),
         "shipping_freight": to_float(request.form.get("shipping_freight")),
-        "shipped_at": request.form.get("shipped_at", "").strip(),
+        "shipped_at": shipped_at,
+        "shipping_note": request.form.get("shipping_note", "").strip(),
     }
-    if not data["shipping_company"] or not data["tracking_number"] or not data["shipped_at"]:
-        flash("快递公司、快递单号和发货时间必须填写。", "error")
-    else:
-        update_order_shipping(order_id, data)
-        flash("发货信息已保存。", "success")
-    return redirect(url_for("main.order_detail", order_id=order_id))
+    update_order_shipping(order_id, data)
+    create_operation_log(
+        current_username(),
+        "填写快递信息",
+        order["order_no"],
+        before_content=before_shipping,
+        after_content=data,
+    )
+    flash("快递信息已保存。", "success")
+    return redirect(shipping_return_url(order_id, return_to))
 
 
 @bp.route("/orders/<int:order_id>/cancel", methods=["POST"])

@@ -11,8 +11,8 @@ ORDER_STATUSES = [
     "加工中",
     "待质检",
     "待包装",
-    "待发货",
     "已发货",
+    "待发货",
     "已完成",
     "已取消",
 ]
@@ -26,13 +26,16 @@ STATUS_FLOW = [
     "加工中",
     "待质检",
     "待包装",
-    "待发货",
     "已发货",
     "已完成",
 ]
 
+SHIPPING_COMPANIES = ["顺丰", "中通", "圆通", "申通", "韵达", "极兔", "德邦", "京东", "其他"]
+
 
 def next_order_status(current_status):
+    if current_status == "待发货":
+        return "已发货"
     if current_status not in STATUS_FLOW:
         return None
     index = STATUS_FLOW.index(current_status)

@@ -40,6 +40,9 @@
             {% if can_view_production_sheet() %}
                 <a class="button info" href="{{ url_for('main.production_sheet', order_id=order.id) }}">生产单</a>
             {% endif %}
+            {% if can_edit_shipping() and order.status == "已发货" %}
+                <a class="button secondary" href="{{ url_for('main.order_shipping_update', order_id=order.id, return_to='detail') }}">填写/修改快递</a>
+            {% endif %}
             {% if can_cancel_order() and order.status != "已取消" %}
                 <form method="post" action="{{ url_for('main.order_cancel', order_id=order.id) }}" onsubmit="return confirm('确定要取消这个订单吗？');">
                     <input type="hidden" name="current_status" value="{{ order.status }}">
@@ -137,18 +140,13 @@
         <h2>发货信息</h2>
         <dl class="detail-list">
             <dt>快递公司</dt><dd>{{ order.shipping_company or "-" }}</dd>
-            <dt>快递单号</dt><dd>{{ order.tracking_number or "-" }}</dd>
+            <dt>快递单号</dt><dd>{% if order.status == "已发货" and not order.tracking_number %}<span class="tag warning">待补单号</span>{% else %}{{ order.tracking_number or "-" }}{% endif %}</dd>
             <dt>运费</dt><dd>¥{{ order.shipping_freight|money }}</dd>
             <dt>发货时间</dt><dd>{{ order.shipped_at or "-" }}</dd>
+            <dt>发货备注</dt><dd>{{ order.shipping_note or "-" }}</dd>
         </dl>
-        {% if can_edit_shipping() %}
-            <form class="shipping-form" method="post" action="{{ url_for('main.order_shipping_update', order_id=order.id) }}">
-                <label>快递公司<input name="shipping_company" value="{{ order.shipping_company or '' }}" placeholder="例如 顺丰、圆通"></label>
-                <label>快递单号<input name="tracking_number" value="{{ order.tracking_number or '' }}"></label>
-                <label>运费<input type="number" step="0.01" name="shipping_freight" value="{{ order.shipping_freight or 0 }}"></label>
-                <label>发货时间<input name="shipped_at" value="{{ order.shipped_at or '' }}" placeholder="例如 2026-05-14 10:30"></label>
-                <button class="button primary" type="submit">保存发货信息</button>
-            </form>
+        {% if can_edit_shipping() and order.status == "已发货" %}
+            <a class="button secondary" href="{{ url_for('main.order_shipping_update', order_id=order.id, return_to='detail') }}">填写/修改快递</a>
         {% endif %}
     </div>
 
