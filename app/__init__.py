@@ -1,4 +1,5 @@
 import os
+import secrets
 
 from flask import Flask, g, redirect, render_template, request, url_for
 
@@ -31,7 +32,8 @@ def create_app(test_config=None):
         static_folder="../static",
     )
     app.config.from_mapping(
-        SECRET_KEY=os.environ.get("SECRET_KEY", "carbon-factory-local-secret"),
+        SECRET_KEY=os.environ.get("SECRET_KEY") or secrets.token_hex(32),
+        INITIAL_ADMIN_PASSWORD=os.environ.get("INITIAL_ADMIN_PASSWORD"),
         DATABASE=os.environ.get("DATABASE", "carbon_factory.db"),
         UPLOAD_FOLDER=os.environ.get("UPLOAD_FOLDER", "uploads"),
         MAX_CONTENT_LENGTH=50 * 1024 * 1024,
@@ -39,6 +41,15 @@ def create_app(test_config=None):
 
     if test_config:
         app.config.update(test_config)
+
+    if app.config.get("TESTING") and not app.config.get("INITIAL_ADMIN_PASSWORD"):
+        app.config["INITIAL_ADMIN_PASSWORD"] = "admin123"
+    if not app.config.get("TESTING"):
+        if app.config["SECRET_KEY"] in {
+            "carbon-factory-local-secret",
+            "please-change-this-to-a-long-random-string",
+        }:
+            raise RuntimeError("Set a unique SECRET_KEY before starting the application")
 
     if not os.path.isabs(app.config["UPLOAD_FOLDER"]):
         app.config["UPLOAD_FOLDER"] = os.path.abspath(

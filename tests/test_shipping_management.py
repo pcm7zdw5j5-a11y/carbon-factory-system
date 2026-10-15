@@ -159,7 +159,10 @@ def test_order_detail_and_monthly_statistics_show_shipping_info(tmp_path):
     )
 
     detail = client.get(f"/orders/{order['id']}").data.decode("utf-8")
-    stats = client.get("/statistics?year=2026&month=5").data.decode("utf-8")
+    order_month = order["created_at"][:7]
+    stats = client.get(
+        f"/statistics?year={order_month[:4]}&month={int(order_month[5:7])}"
+    ).data.decode("utf-8")
 
     assert "发货信息" in detail
     assert "顺丰" in detail

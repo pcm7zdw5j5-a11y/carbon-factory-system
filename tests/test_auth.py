@@ -16,6 +16,36 @@ def make_app(tmp_path):
     )
 
 
+def test_production_requires_explicit_initial_admin_password(tmp_path):
+    app = create_app(
+        {
+            "DATABASE": str(tmp_path / "production.db"),
+            "UPLOAD_FOLDER": str(tmp_path / "uploads"),
+            "INITIAL_ADMIN_PASSWORD": None,
+        }
+    )
+    with app.app_context():
+        admin = get_db().execute("SELECT id FROM users WHERE username = 'admin'").fetchone()
+
+    assert admin is None
+
+
+def test_production_bootstrap_uses_configured_password(tmp_path):
+    password = "unique-test-password-2026"
+    app = create_app(
+        {
+            "DATABASE": str(tmp_path / "production.db"),
+            "UPLOAD_FOLDER": str(tmp_path / "uploads"),
+            "INITIAL_ADMIN_PASSWORD": password,
+        }
+    )
+    with app.app_context():
+        admin = get_db().execute("SELECT password_hash FROM users WHERE username = 'admin'").fetchone()
+
+    assert admin is not None
+    assert check_password_hash(admin["password_hash"], password)
+
+
 def test_users_table_and_default_admin_are_created_with_hashed_password(tmp_path):
     app = make_app(tmp_path)
     with app.app_context():

@@ -2,11 +2,9 @@
 
 这是一个基于 Python Flask + SQLite 的工厂订单管理系统。当前版本适合在主电脑或小型云服务器上运行，员工通过电脑或手机浏览器访问。项目会继续迭代，因此当前整理目标是：保留已有功能，补齐部署配置，保持结构清晰，方便后续扩展。
 
-## 当前代码位置
+## 许可证
 
-```text
-D:\Documents\New project 2
-```
+本项目采用 [MIT License](LICENSE)。
 
 ## 当前主要功能
 
@@ -117,7 +115,7 @@ python3 -m venv .venv
 4. 设置环境变量：
 
 ```bash
-export SECRET_KEY="请换成一串很长的随机字符串"
+# 首次启动前，在部署环境中设置持久的 SECRET_KEY 和强 INITIAL_ADMIN_PASSWORD
 export DATABASE="carbon_factory.db"
 export UPLOAD_FOLDER="uploads"
 ```
@@ -136,14 +134,11 @@ export UPLOAD_FOLDER="uploads"
 - 需要调试时再临时设置 `FLASK_DEBUG=1`。
 - 云服务器需要在安全组或防火墙中放行 5000 端口，或使用 Nginx 反向代理到 80/443。
 
-## 默认管理员账号
+## 首次管理员账号
 
-```text
-用户名：admin
-密码：admin123
-```
+首次启动前设置 `INITIAL_ADMIN_PASSWORD`，长度至少 12 个字符。系统仅在数据库中不存在 `admin` 用户时使用它创建管理员；已有管理员密码不会被覆盖。请勿把真实密码提交到 GitHub。若未设置此变量且数据库中没有管理员，系统不会创建默认账号。
 
-第一次登录后请尽快进入“用户管理”修改默认密码。
+`SECRET_KEY` 应设置为独一无二且持久的随机值；未设置时应用会为当前进程生成随机值，重启或多进程运行会使登录会话失效。
 
 ## 新增员工账号
 
@@ -169,7 +164,7 @@ carbon_factory.db
 - 如果数据库不存在，会自动创建。
 - 如果缺少表，会自动创建。
 - 如果缺少字段，会自动补充。
-- 如果 `admin` 用户不存在，才会创建默认管理员。
+- 如果 `admin` 用户不存在，且已配置 `INITIAL_ADMIN_PASSWORD`，才会创建管理员。
 - 不会重建订单表。
 - 不会清空订单。
 - 不会删除 `uploads/` 中的图纸和附件。

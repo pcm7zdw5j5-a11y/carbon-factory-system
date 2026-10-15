@@ -104,7 +104,8 @@ nano /var/www/carbon_factory/.env
 写入：
 
 ```bash
-SECRET_KEY=请换成一串很长的随机字符串
+SECRET_KEY=
+INITIAL_ADMIN_PASSWORD=
 DATABASE=/var/www/carbon_factory/carbon_factory.db
 UPLOAD_FOLDER=/var/www/carbon_factory/uploads
 FLASK_HOST=0.0.0.0
@@ -121,11 +122,12 @@ mkdir -p /var/www/carbon_factory/backups
 
 说明：
 
-- `SECRET_KEY` 必须改成你自己的随机字符串。
+- 启动前将 `SECRET_KEY` 设为独一无二且持久的随机字符串；不要提交真实值。
+- `INITIAL_ADMIN_PASSWORD` 仅用于首次创建管理员，至少 12 个字符。已有管理员密码不会被覆盖；不要将真实密码提交到 GitHub。
 - `FLASK_DEBUG=0`，正式部署不要开启 debug。
 - 如果 `carbon_factory.db` 不存在，系统启动时会自动创建。
 - 如果 `users` 表不存在，系统启动时会自动创建。
-- 如果 admin 用户不存在，系统启动时才会创建默认 `admin / admin123`。
+- 如果 admin 用户不存在，系统只会在配置 `INITIAL_ADMIN_PASSWORD` 后创建管理员。
 - 已有数据库不会被覆盖。
 
 ## 八、手动测试 gunicorn
@@ -301,11 +303,6 @@ sudo systemctl status carbon_factory
 journalctl -u carbon_factory -n 80
 ```
 
-## 十四、默认登录
+## 十四、首次登录
 
-```text
-用户名：admin
-密码：admin123
-```
-
-第一次登录后，请立刻修改默认密码。
+使用用户名 `admin` 和首次运行时设置的 `INITIAL_ADMIN_PASSWORD` 登录。如果数据库中已有管理员，继续使用现有密码；部署前请确认旧的默认密码已被更换，并设置持久的 `SECRET_KEY`。

@@ -126,7 +126,8 @@ def test_monthly_statistics_show_exception_and_rework_counts(tmp_path):
         follow_redirects=False,
     )
 
-    response = client.get("/statistics?year=2026&month=5")
+    order_month = order["created_at"][:7]
+    response = client.get(f"/statistics?year={order_month[:4]}&month={int(order_month[5:7])}")
     page = response.data.decode("utf-8")
 
     assert response.status_code == 200

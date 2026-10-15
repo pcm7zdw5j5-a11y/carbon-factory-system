@@ -321,6 +321,14 @@ def seed_admin_user(db):
     admin = db.execute("SELECT id FROM users WHERE username = ?", ("admin",)).fetchone()
     if admin:
         return
+    initial_password = current_app.config.get("INITIAL_ADMIN_PASSWORD")
+    if not initial_password:
+        return
+    if not current_app.config.get("TESTING") and (
+        len(initial_password) < 12
+        or initial_password in {"admin123", "replace-with-unique-strong-password"}
+    ):
+        raise RuntimeError("Set a unique INITIAL_ADMIN_PASSWORD of at least 12 characters")
     db.execute(
         """
         INSERT INTO users (username, password_hash, role, is_active, created_at)
@@ -328,7 +336,7 @@ def seed_admin_user(db):
         """,
         (
             "admin",
-            generate_password_hash("admin123"),
+            generate_password_hash(initial_password),
             "admin",
             1,
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
